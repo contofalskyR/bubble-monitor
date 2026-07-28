@@ -1,0 +1,133 @@
+name: journal
+
+# Log predictions, scores, and tripwire states FROM YOUR PHONE:
+# GitHub mobile app (or mobile browser) -> Actions -> journal -> Run workflow,
+# fill the form, run. The commit it makes triggers the monitor workflow, so the
+# site rebuilds with your entry within ~2 minutes. Runs on GitHub's machines —
+# works even when your laptop is asleep.
+
+on:
+  workflow_dispatch:
+    inputs:
+      kind:
+        description: "Entry type"
+        required: true
+        type: choice
+        options: [prediction, score, set-state]
+      event:
+        description: "prediction/score — event name, e.g. 'Meta Q2 2026'"
+        required: false
+        default: ""
+      text:
+        description: "prediction — your call + reasoning · score — what actually printed"
+        required: false
+        default: ""
+      verdict:
+        description: "score only — right / wrong / mixed"
+        required: false
+        default: ""
+      lesson:
+        description: "score only — the lesson (optional)"
+        required: false
+        default: ""
+      tripwire_id:
+        description: "set-state only — e.g. hyper.meta_commitments"
+        required: false
+        default: ""
+      state:
+        description: "set-state only — confirm / refute / quiet / clear"
+        required: false
+        default: ""
+      note:
+        description: "set-state only — WHY (goes in the record)"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+jobs:
+  append:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Append entry (inputs pass through env, never the shell)
+        env:
+          K: ${{ inputs.kind }}
+          EV: ${{ inputs.event }}
+          TX: ${{ inputs.text }}
+          VD: ${{ inputs.verdict }}
+          LS: ${{ inputs.lesson }}
+          TW: ${{ inputs.tripwire_id }}
+          ST: ${{ inputs.state }}
+          NT: ${{ inputs.note }}
+        run: |
+          python3 - << 'EOF'
+          import json, os, sys
+          from datetime import datetime, timezone, date
+
+          def die(msg):
+              print("INPUT ERROR:", msg)
+              sys.exit(1)
+
+          k = os.environ["K"]
+
+          if k in ("prediction", "score"):
+              ev, tx = os.environ["EV"].strip(), os.environ["TX"].strip()
+              if not ev or not tx:
+                  die(f"'event' and 'text' are required for a {k}")
+              e = {"kind": k, "event": ev}
+              if k == "prediction":
+                  e["prediction"] = tx
+              else:
+                  vd = os.environ["VD"].strip().lower()
+                  if vd not in ("right", "wrong", "mixed"):
+                      die("verdict must be right, wrong, or mixed")
+                  e.update({"actual": tx, "verdict": vd,
+                            "lesson": os.environ["LS"].strip()})
+              e["ts"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
+              e["via"] = "phone"
+              with open("journal.jsonl", "a") as f:
+                  f.write(json.dumps(e) + "\n")
+              msg = f"journal({k}): {ev} [via phone]"
+
+          elif k == "set-state":
+              tw_id = os.environ["TW"].strip()
+              st = os.environ["ST"].strip().lower()
+              if st not in ("confirm", "refute", "quiet", "clear"):
+                  die("state must be confirm, refute, quiet, or clear")
+              tw = json.load(open("tripwires.json"))
+              hit = next((t for t in tw["tripwires"] if t["id"] == tw_id), None)
+              if hit is None:
+                  die(f"no tripwire with id {tw_id!r}")
+              if hit["check"]["type"] != "manual":
+                  die(f"{tw_id} is auto-checked from FRED; its state cannot be set by hand")
+              if st == "clear":
+                  for kk in ("state", "state_as_of", "state_note"):
+                      hit.pop(kk, None)
+              else:
+                  hit["state"] = st
+                  hit["state_as_of"] = date.today().isoformat()
+                  if os.environ["NT"].strip():
+                      hit["state_note"] = os.environ["NT"].strip()
+              with open("tripwires.json", "w") as f:
+                  f.write(json.dumps(tw, indent=2) + "\n")
+              msg = f"state: {tw_id} -> {st} [via phone]"
+
+          else:
+              die("unknown kind")
+
+          with open(".commit_msg", "w") as f:
+              f.write(msg + "\n")
+          print("OK:", msg)
+          EOF
+
+      - name: Commit and push (triggers the monitor rebuild)
+        run: |
+          git config user.name "journal-phone"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add journal.jsonl tripwires.json 2>/dev/null || true
+          git commit -F .commit_msg || { echo "nothing to commit"; exit 0; }
+          git pull --rebase origin main
+          git push
