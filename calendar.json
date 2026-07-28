@@ -1,0 +1,268 @@
+{
+  "_meta": {
+    "source": "The Useful Life of a Bubble, Sections 10.2-10.3 (25 July 2026)",
+    "tags": "V = confirmed date; EST = estimated from prior-year pattern; load_bearing = one of the four dates that carry most of the information; precision:'month' = the report verifies the MONTH only \u2014 the stored day is the 1st and countdowns are approximate (never invent day precision)"
+  },
+  "events": [
+    {
+      "date": "2026-07-28",
+      "tag": "V",
+      "load_bearing": false,
+      "event": "FOMC (concludes 29 Jul)",
+      "watch": "Policy rate vs spread direction \u2014 anchors the credit.fed_funds manual tripwire"
+    },
+    {
+      "date": "2026-07-29",
+      "tag": "V",
+      "load_bearing": false,
+      "event": "Meta Q2 2026",
+      "watch": "Non-cancelable contractual commitments ($237.67bn at Q1, after a $106.6bn single-quarter increase)"
+    },
+    {
+      "date": "2026-07-29",
+      "tag": "V",
+      "load_bearing": false,
+      "event": "Microsoft FY26 Q4",
+      "watch": "Capex including finance leases (the release gives cash PP&E only)"
+    },
+    {
+      "date": "2026-07-30",
+      "tag": "EST",
+      "load_bearing": false,
+      "event": "Microsoft FY2026 10-K",
+      "watch": "Any change to 'computer equipment 2 to 6 years'"
+    },
+    {
+      "date": "2026-07-30",
+      "tag": "EST",
+      "load_bearing": false,
+      "event": "Amazon Q2 2026",
+      "watch": "Capex to operating cash flow (already 101.7% TTM)"
+    },
+    {
+      "date": "2026-07-31",
+      "tag": "EST",
+      "load_bearing": false,
+      "event": "Vertiv Q2 2026",
+      "watch": "Whether backlog, organic orders and book-to-bill return to the release"
+    },
+    {
+      "date": "2026-08-04",
+      "tag": "V",
+      "load_bearing": false,
+      "event": "AMD Q2 2026",
+      "watch": "Data Center revenue; MI450/Helios ramp language; warrant vesting"
+    },
+    {
+      "date": "2026-08-05",
+      "tag": "EST",
+      "load_bearing": false,
+      "event": "Palantir Q2 2026",
+      "watch": "US commercial growth against the $4.5bn RPO"
+    },
+    {
+      "date": "2026-08-07",
+      "tag": "EST",
+      "load_bearing": false,
+      "event": "CoreWeave Q2 2026",
+      "watch": "Backlog ($99.4bn) and cash against current debt (0.30x)"
+    },
+    {
+      "date": "2026-08-14",
+      "tag": "V",
+      "load_bearing": false,
+      "event": "13F-HR deadline, Q2 2026",
+      "watch": "NVIDIA's positions in CoreWeave and Intel"
+    },
+    {
+      "date": "2026-08-26",
+      "tag": "V",
+      "load_bearing": true,
+      "event": "NVIDIA Q2 FY2027",
+      "watch": "Inventory, DSO, $119bn supply commitments, 64% receivable concentration, $42.3bn non-marketable equity - all print at once"
+    },
+    {
+      "date": "2026-08-27",
+      "tag": "V",
+      "load_bearing": false,
+      "event": "Intel/Commerce lockup first anniversary",
+      "watch": "Transfers permitted, only in broadly-syndicated offerings"
+    },
+    {
+      "date": "2026-09-01",
+      "tag": "V",
+      "load_bearing": false,
+      "event": "Oracle $3.3bn lessor-borrowing guarantee matures",
+      "watch": "Refinanced, called, or extended",
+      "precision": "month"
+    },
+    {
+      "date": "2026-09-10",
+      "tag": "EST",
+      "load_bearing": false,
+      "event": "Oracle Q1 FY2027",
+      "watch": "RPO ($638bn) and 12-month conversion (12%)"
+    },
+    {
+      "date": "2026-09-15",
+      "tag": "EST",
+      "load_bearing": false,
+      "event": "Broadcom Q3 FY2026",
+      "watch": "AI semis vs $16.0bn guide; RPO vs $164.6bn"
+    },
+    {
+      "date": "2026-09-15",
+      "tag": "V",
+      "load_bearing": false,
+      "event": "FOMC with SEP (15-16 Sep)",
+      "watch": "Cuts-vs-spreads tripwire; dot plot"
+    },
+    {
+      "date": "2026-09-30",
+      "tag": "V",
+      "load_bearing": false,
+      "event": "CoreWeave DDTL 5.0 DSCR >=1.35x begins",
+      "watch": "First test of the newest facility"
+    },
+    {
+      "date": "2026-10-01",
+      "tag": "V",
+      "load_bearing": false,
+      "event": "SoftBank third $10bn OpenAI tranche",
+      "watch": "Subject to acceleration on an OpenAI listing"
+    },
+    {
+      "date": "2026-10-27",
+      "tag": "EST",
+      "load_bearing": false,
+      "event": "Late-Oct cluster A: Alphabet Q3, Intel Q3, GE Vernova Q3",
+      "watch": "Alphabet capex/OCF (115% in Q2); GEV slot reservations vs the 125 GW target"
+    },
+    {
+      "date": "2026-10-28",
+      "tag": "V",
+      "load_bearing": true,
+      "event": "CoreWeave unlimited-equity-cure window expires",
+      "watch": "Any cure exercised, or any ratio shortfall, thereafter. Binary and unavoidable."
+    },
+    {
+      "date": "2026-10-29",
+      "tag": "EST",
+      "load_bearing": false,
+      "event": "Late-Oct cluster B: Microsoft FY27 Q1, Meta Q3, Amazon Q3",
+      "watch": "Four-company capex/OCF aggregate vs the 110% tripwire"
+    },
+    {
+      "date": "2026-11-03",
+      "tag": "C",
+      "load_bearing": false,
+      "event": "US midterm elections",
+      "watch": "Policy risk to CHIPS, export controls, federal permitting"
+    },
+    {
+      "date": "2026-11-25",
+      "tag": "EST",
+      "load_bearing": false,
+      "event": "NVIDIA Q3 FY2027",
+      "watch": "Same panel as August"
+    },
+    {
+      "date": "2026-12-31",
+      "tag": "V",
+      "load_bearing": false,
+      "event": "GE Vernova year-end gas position",
+      "watch": ">=125 GW target; reservation-to-firm-order conversion rate"
+    },
+    {
+      "date": "2027-01-01",
+      "tag": "V",
+      "load_bearing": false,
+      "event": "ASU 2024-03 (DISE) effective for calendar-year filers",
+      "watch": "Depreciation disaggregated within each income-statement caption \u2014 first new disclosure in a decade (report Sec 10.6)"
+    },
+    {
+      "date": "2027-01-29",
+      "tag": "EST",
+      "load_bearing": true,
+      "event": "FY2026 10-Ks: Meta ~29 Jan, Alphabet ~5 Feb, Amazon ~6 Feb",
+      "watch": "USEFUL LIVES - the last remaining earnings lever, and the one disclosure that cannot be spun"
+    },
+    {
+      "date": "2027-04-01",
+      "tag": "V",
+      "load_bearing": false,
+      "event": "Oracle $2,250m 2.87% notes mature",
+      "watch": "First refinancing step at the new cost of capital",
+      "precision": "month"
+    },
+    {
+      "date": "2027-06-01",
+      "tag": "V",
+      "load_bearing": false,
+      "event": "CoreWeave DDTL 4.0 commitment termination; DSCR >=1.15x begins",
+      "watch": "Facility test",
+      "precision": "month"
+    },
+    {
+      "date": "2027-06-01",
+      "tag": "C",
+      "load_bearing": false,
+      "precision": "month",
+      "event": "Oracle-OpenAI revenue ramp window opens (Jun 2027 - May 2028)",
+      "watch": "Consistent with Oracle's RPO schedule: 12% FY2027, then 34% across FY2028-29"
+    },
+    {
+      "date": "2027-08-01",
+      "tag": "V",
+      "load_bearing": false,
+      "event": "Oracle term loan matures (~$4,645m balloon)",
+      "watch": "First hard refinancing test",
+      "precision": "month"
+    },
+    {
+      "date": "2027-10-31",
+      "tag": "V",
+      "load_bearing": true,
+      "event": "CoreWeave DDTL 3.0 first debt-service coverage test",
+      "watch": "Minimum 1.40x trailing three-month, tested monthly. Already deferred once."
+    },
+    {
+      "date": "2027-11-01",
+      "tag": "V",
+      "load_bearing": false,
+      "event": "Oracle $2,750m 3.29% notes mature",
+      "watch": "Refinancing cost",
+      "precision": "month"
+    },
+    {
+      "date": "2028-01-01",
+      "tag": "V",
+      "load_bearing": false,
+      "event": "ASU 2024-03 interim effective; ASU 2025-06 annual effective",
+      "watch": "Interim DISE application begins"
+    },
+    {
+      "date": "2028-01-31",
+      "tag": "C",
+      "load_bearing": false,
+      "precision": "month",
+      "event": "First DISE-compliant 10-Ks (Jan-Feb 2028)",
+      "watch": "Depreciation disaggregated by expense caption for the first time \u2014 Section 2's questions become answerable"
+    },
+    {
+      "date": "2028-03-01",
+      "tag": "V",
+      "load_bearing": false,
+      "event": "CoreWeave DDTL 1.0 matures ($1,438m at ~15% effective)",
+      "watch": "The most expensive money comes due first",
+      "precision": "month"
+    },
+    {
+      "date": "2028-06-01",
+      "tag": "V",
+      "load_bearing": false,
+      "event": "PJM 2028/2029 delivery year begins at $325/MW-day",
+      "watch": "The price the data-centre load must absorb"
+    }
+  ]
+}

@@ -1,0 +1,391 @@
+{
+  "_meta": {
+    "source": "The Useful Life of a Bubble, Section 10.4 (25 July 2026)",
+    "as_of": "2026-07-25",
+    "rule": "Read the refutation column first. If a refuting condition is met and you reach for a reason it does not count, the thesis has become a belief. (Sec 10.7)",
+    "check_types": "fred = auto-checkable daily; fred_spread = derived from two FRED series; manual = requires reading a filing or release on the event date",
+    "baseline_stage": 1,
+    "baseline_note": "Report's own July 2026 read: periphery repricing already underway (ORCL 5y CDS 203bp vs IG index 79bp; CCC/HY dispersion 3.58x).",
+    "states": "Manual tripwires may carry state ('confirm'|'refute'|'quiet'), state_as_of, state_note \u2014 set on event days via the set_tripwire_state MCP tool. Missing state = not yet assessed (treated as quiet).",
+    "thesis_status": "OPEN",
+    "baseline_review_by": "2026-10-31",
+    "sessions_note": "For dials declaring 'sessions', BOTH the confirm rule and the refute 'sustained' rule are evaluated over that same full session window \u2014 an operationalization choice, made visible here per the git-visibility principle."
+  },
+  "tripwires": [
+    {
+      "id": "credit.hy_oas",
+      "category": "credit",
+      "name": "High-yield OAS",
+      "current": "2.77% (23 Jul 2026)",
+      "confirms": ">4.50% for 10 sessions",
+      "refutes": "<2.50% sustained",
+      "check": {
+        "type": "fred",
+        "series": "BAMLH0A0HYM2",
+        "confirm_gt": 4.5,
+        "refute_lt": 2.5,
+        "sessions": 10
+      }
+    },
+    {
+      "id": "credit.ccc_oas",
+      "category": "credit",
+      "name": "CCC OAS",
+      "current": "9.91%, rising daily 16-23 Jul",
+      "confirms": ">13.00%",
+      "refutes": "<8.50%",
+      "check": {
+        "type": "fred",
+        "series": "BAMLH0A3HYC",
+        "confirm_gt": 13.0,
+        "refute_lt": 8.5
+      }
+    },
+    {
+      "id": "credit.dispersion",
+      "category": "credit",
+      "name": "CCC minus HY dispersion",
+      "current": "7.14pp; ratio 3.58x",
+      "confirms": ">9.00pp",
+      "refutes": "<6.00pp",
+      "check": {
+        "type": "fred_spread",
+        "series_a": "BAMLH0A3HYC",
+        "series_b": "BAMLH0A0HYM2",
+        "confirm_gt": 9.0,
+        "refute_lt": 6.0
+      },
+      "notes": "The single most informative number in the report: IG at post-1998 tights while CCC prices the tail."
+    },
+    {
+      "id": "credit.bbb_oas",
+      "category": "credit",
+      "name": "BBB OAS",
+      "current": "0.98%",
+      "confirms": ">1.60%",
+      "refutes": "<0.90%",
+      "check": {
+        "type": "fred",
+        "series": "BAMLC0A4CBBB",
+        "confirm_gt": 1.6,
+        "refute_lt": 0.9
+      }
+    },
+    {
+      "id": "credit.ig_oas",
+      "category": "credit",
+      "name": "Investment-grade OAS",
+      "current": "0.79%",
+      "confirms": ">1.30%",
+      "refutes": "<0.75%",
+      "check": {
+        "type": "fred",
+        "series": "BAMLC0A0CM",
+        "confirm_gt": 1.3,
+        "refute_lt": 0.75
+      }
+    },
+    {
+      "id": "credit.ust10y",
+      "category": "credit",
+      "name": "10-year Treasury",
+      "current": "4.71% (23 Jul 2026)",
+      "confirms": ">5.50%",
+      "refutes": "<4.00%",
+      "check": {
+        "type": "fred",
+        "series": "DGS10",
+        "confirm_gt": 5.5,
+        "refute_lt": 4.0
+      }
+    },
+    {
+      "id": "credit.fed_funds",
+      "category": "credit",
+      "name": "Fed funds vs spreads",
+      "current": "3.63% (Jun 2026), from 4.33% a year earlier",
+      "confirms": "Cuts stop while spreads widen",
+      "refutes": "Easing continues, spreads stable",
+      "check": {
+        "type": "manual",
+        "when": "FOMC dates",
+        "hint": "fred_latest('FEDFUNDS') alongside check_credit_tripwires()"
+      }
+    },
+    {
+      "id": "nvda.inventory",
+      "category": "nvidia",
+      "name": "NVIDIA inventory",
+      "current": "$25,797m; raw materials +74.6% q/q; ~115 days",
+      "confirms": ">$35bn while sequential revenue growth <10%",
+      "refutes": "Inventory grows slower than revenue for 2 quarters",
+      "check": {
+        "type": "manual",
+        "when": "NVDA 10-Q (next: 26 Aug 2026)",
+        "hint": "latest_filings('nvidia','10-Q')"
+      }
+    },
+    {
+      "id": "nvda.dso",
+      "category": "nvidia",
+      "name": "NVIDIA days sales outstanding",
+      "current": "45.4 days (vs 45.7 five quarters earlier)",
+      "confirms": ">65 days",
+      "refutes": "<=45 days",
+      "check": {
+        "type": "manual",
+        "when": "NVDA 10-Q",
+        "hint": "DSO = AR / quarterly revenue x 91"
+      }
+    },
+    {
+      "id": "nvda.supply_commitments",
+      "category": "nvidia",
+      "name": "NVIDIA supply commitments",
+      "current": "$119bn, $95bn due within FY2027; +299% y/y",
+      "confirms": "Sequential decline >15%",
+      "refutes": "Grows in line with revenue",
+      "check": {
+        "type": "manual",
+        "when": "NVDA 10-Q"
+      }
+    },
+    {
+      "id": "nvda.receivable_concentration",
+      "category": "nvidia",
+      "name": "NVIDIA receivable concentration",
+      "current": "Top 3 = 64%; no allowance disclosed",
+      "confirms": "Top 3 >70% with rising DSO, or a first-ever allowance for credit losses",
+      "refutes": "<55%",
+      "check": {
+        "type": "manual",
+        "when": "NVDA 10-Q"
+      }
+    },
+    {
+      "id": "nvda.equity_book",
+      "category": "nvidia",
+      "name": "NVIDIA non-marketable equity",
+      "current": "$42,336m, +$17,899m in one quarter; $27bn more committed",
+      "confirms": "Impairments >$3bn in a quarter, or additions stop abruptly",
+      "refutes": "Additions continue, net gains positive",
+      "check": {
+        "type": "manual",
+        "when": "NVDA 10-Q"
+      }
+    },
+    {
+      "id": "nvda.13f_positions",
+      "category": "nvidia",
+      "name": "NVIDIA 13F positions in CRWV / INTC",
+      "current": "11.5% of CRWV; 214.8m INTC shares",
+      "confirms": "Either position trimmed",
+      "refutes": "Either increased",
+      "check": {
+        "type": "manual",
+        "when": "13F deadlines (next: 14 Aug 2026)",
+        "hint": "edgar_search('CoreWeave', forms='13F-HR', cik_of='nvidia')"
+      }
+    },
+    {
+      "id": "orcl.rpo_conversion",
+      "category": "oracle",
+      "name": "Oracle RPO and 12-month conversion",
+      "current": "$638bn; ~12% ($76.6bn) within a year",
+      "confirms": "Conversion <10%, or RPO declines sequentially",
+      "refutes": "RPO grows and conversion >=14%",
+      "check": {
+        "type": "manual",
+        "when": "Oracle quarterly (next: ~Sep 2026)"
+      }
+    },
+    {
+      "id": "orcl.uncommenced_leases",
+      "category": "oracle",
+      "name": "Oracle leases not yet commenced",
+      "current": "$260bn vs $30.19bn recognised (8.6x)",
+      "confirms": "Falls >10% q/q without a matching ROU-asset increase (= cancellation)",
+      "refutes": "Converts to ROU assets on schedule",
+      "check": {
+        "type": "manual",
+        "when": "Oracle 10-Q/10-K lease footnote"
+      }
+    },
+    {
+      "id": "orcl.capex_ocf",
+      "category": "oracle",
+      "name": "Oracle capex / operating cash flow",
+      "current": "1.74x; FCF -$23.7bn",
+      "confirms": ">2.0x with FY2027 revenue below the $90bn guide",
+      "refutes": "<1.30x",
+      "check": {
+        "type": "manual",
+        "when": "Oracle quarterly"
+      }
+    },
+    {
+      "id": "orcl.long_bond",
+      "category": "oracle",
+      "name": "Oracle new-issue long-bond yield",
+      "current": "6.74% (30y) / 6.89% (40y), Feb 2026",
+      "confirms": "Next 30y >7.50%, or CY2026 programme not completed",
+      "refutes": "Next 30y <6.25%",
+      "check": {
+        "type": "manual",
+        "when": "Any Oracle 424B prospectus",
+        "hint": "latest_filings('oracle','424B2')"
+      }
+    },
+    {
+      "id": "crwv.equity_cures",
+      "category": "coreweave",
+      "name": "CoreWeave equity-cure usage after 28 Oct 2026",
+      "current": "Unlimited until 28 Oct 2026; capped at 3 of any 4 consecutive months thereafter; CRR >=0.85x tested monthly since 28 Feb 2026",
+      "confirms": "Any cure exercised, or any covenant shortfall, after 28 Oct 2026",
+      "refutes": "No cure used through Q1 2027",
+      "check": {
+        "type": "manual",
+        "when": "CRWV 8-Ks after 28 Oct 2026",
+        "hint": "edgar_search('equity cure', cik_of='coreweave')"
+      },
+      "notes": "The hardest tripwire in the report. Binary and unavoidable."
+    },
+    {
+      "id": "crwv.backlog_ratio",
+      "category": "coreweave",
+      "name": "CoreWeave backlog to revenue",
+      "current": "$99.4bn vs $8.3bn annualised = ~12x; 36% of RPO converts in 24 months",
+      "confirms": "Backlog declines sequentially, or 24-month conversion <30%",
+      "refutes": "Ratio falls below 8x via revenue growth",
+      "check": {
+        "type": "manual",
+        "when": "CRWV quarterly"
+      }
+    },
+    {
+      "id": "crwv.liquidity",
+      "category": "coreweave",
+      "name": "CoreWeave cash to current debt",
+      "current": "$2,244m vs $7,547m = 0.30x",
+      "confirms": "<0.25x in a quarter with no completed raise",
+      "refutes": ">0.50x",
+      "check": {
+        "type": "manual",
+        "when": "CRWV quarterly"
+      }
+    },
+    {
+      "id": "crwv.cost_of_capital",
+      "category": "coreweave",
+      "name": "CoreWeave marginal cost of capital",
+      "current": "SOFR+225 (Mar) -> SOFR+450 (May) -> 9.625% unsecured (Jun 2026)",
+      "confirms": "Next unsecured >11.00%, or secured wider than SOFR+500",
+      "refutes": "Next unsecured <8.50%",
+      "check": {
+        "type": "manual",
+        "when": "Any CRWV financing 8-K"
+      }
+    },
+    {
+      "id": "hyper.meta_commitments",
+      "category": "hyperscalers",
+      "name": "Meta non-cancelable commitments",
+      "current": "$237.67bn, +$106.6bn in one quarter; $182.88bn of uncommenced leases",
+      "confirms": "Sequential decline (cancellation), or growth while revenue growth <15%",
+      "refutes": "Grows alongside revenue growth >20%",
+      "check": {
+        "type": "manual",
+        "when": "Meta 10-Q (next: 29 Jul 2026)"
+      }
+    },
+    {
+      "id": "hyper.capex_ocf",
+      "category": "hyperscalers",
+      "name": "Big-four capex / operating cash flow",
+      "current": "Alphabet 115.0% (Q2 26); Amazon 101.7% TTM; Microsoft 62.9%; Meta 61.6%",
+      "confirms": "Four-company aggregate >110% for two consecutive quarters",
+      "refutes": "Aggregate <85%",
+      "check": {
+        "type": "manual",
+        "when": "Each quarterly print"
+      },
+      "notes": "Epoch's crossover estimate: aggregate crosses above OCF ~Q3 2026."
+    },
+    {
+      "id": "hyper.useful_lives",
+      "category": "hyperscalers",
+      "name": "Server useful lives",
+      "current": "Alphabet 6y; Amazon 5-6y; Meta 5.5y; Oracle 6y; Microsoft 2-6y; CoreWeave 6y",
+      "confirms": "Any extension beyond six years",
+      "refutes": "Any shortening, as Amazon did in 2025",
+      "check": {
+        "type": "manual",
+        "when": "FY2026 10-Ks, Jan-Feb 2027",
+        "hint": "edgar_search('useful lives of our servers')"
+      },
+      "notes": "The single most informative disclosure of the next twelve months (Sec 10.7)."
+    },
+    {
+      "id": "supply.gev_backlog",
+      "category": "supply_chain",
+      "name": "GE Vernova gas backlog + reservations",
+      "current": "116 GW vs 20 GW/yr output; guided >=125 GW by YE2026; 54% is reservations; Q2: 18 GW new reservations vs 2 GW firm orders",
+      "confirms": "<120 GW at YE2026, or any disclosed slot cancellation",
+      "refutes": ">=125 GW at YE2026",
+      "check": {
+        "type": "manual",
+        "when": "GEV quarterly 8-Ks"
+      },
+      "notes": "Reservation-to-firm-order conversion is the single most important supply-chain number (Sec 8.7)."
+    },
+    {
+      "id": "supply.vertiv_disclosure",
+      "category": "supply_chain",
+      "name": "Vertiv orders / backlog / book-to-bill",
+      "current": "NOT DISCLOSED in Q1 2026. Last: $15.0bn backlog, +252% orders, 2.9x",
+      "confirms": "Continued non-disclosure, or backlog <$15.0bn",
+      "refutes": "Disclosure resumes with backlog >$18bn",
+      "check": {
+        "type": "manual",
+        "when": "Vertiv quarterly (next: ~late Jul 2026)"
+      },
+      "notes": "Companies stop disclosing numbers before those numbers go bad (Sec 10.5)."
+    },
+    {
+      "id": "supply.avgo_rpo",
+      "category": "supply_chain",
+      "name": "Broadcom RPO",
+      "current": "$164.6bn, ~30% within 12 months",
+      "confirms": "Declines sequentially, or 12-month share <25%",
+      "refutes": "Grows; Q3 AI semis at or above $16.0bn",
+      "check": {
+        "type": "manual",
+        "when": "AVGO quarterly (next: ~Sep 2026)"
+      }
+    },
+    {
+      "id": "supply.dlr_spreads",
+      "category": "supply_chain",
+      "name": "Data-centre renewal spreads",
+      "current": "Digital Realty +5.0% cash at 90.1% occupancy",
+      "confirms": "Turns negative",
+      "refutes": "Above +15% (genuine shortage pricing)",
+      "check": {
+        "type": "manual",
+        "when": "DLR quarterly"
+      }
+    },
+    {
+      "id": "supply.takeorpay_tariffs",
+      "category": "supply_chain",
+      "name": "AEP-style large-load take-or-pay tariffs",
+      "current": "Pending in MI, OK, TX, VA; 80-90% minimums",
+      "confirms": "Spread to more states, or minimums raised",
+      "refutes": "Rejected or diluted by PUCs",
+      "check": {
+        "type": "manual",
+        "when": "AEP 10-Qs; state PUC dockets"
+      }
+    }
+  ]
+}

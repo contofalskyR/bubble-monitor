@@ -1,0 +1,120 @@
+name: monitor
+
+on:
+  schedule:
+    - cron: "30 21 * * 1-5"   # 21:30 UTC weekdays. NOTE: ICE BofA series may post
+                              # to FRED the following morning — smoke_test.py prints
+                              # the measured lag; obs_date in history.csv records truth.
+  workflow_dispatch: {}        # manual run button (works from the GitHub mobile app)
+  push:
+    branches: [main]           # rebuild the dashboard on every commit (incl. journal/state)
+
+# F20: job-level least privilege lives on each job below.
+# TODO (owner, one-time): SHA-pin the four actions —
+#   gh api repos/actions/checkout/commits/v4 -q .sha   (repeat per action, paste below)
+# Tag pins are kept until then; see BACKLOG.md.
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Offline regression tests (red-team fixture suite)
+        run: python selftest.py
+
+      - name: Live API shape test
+        env:
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+          EDGAR_UA: ${{ secrets.EDGAR_UA }}
+        run: python smoke_test.py
+
+      - name: Run tripwire checks
+        env:
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+          EDGAR_UA: ${{ secrets.EDGAR_UA }}
+        run: python check.py
+
+      - name: Build dashboard
+        env:
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+        run: python build_dashboard.py
+
+      - name: Upload dashboard for Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs
+
+      - name: Commit history snapshot (self-sustaining heartbeat)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name "tripwire-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/ tripwires.json 2>/dev/null || true
+          git commit -m "history: $(date -u +%F) [skip ci]" || { echo "nothing to commit"; exit 0; }
+          git pull --rebase origin main && git push || {
+            gh issue create \
+              --title "MONITOR BROKEN — heartbeat push failed $(date -u +%F)" \
+              --body "The history commit could not be pushed. If this persists, GitHub's ~60-day inactivity rule will disable the schedule and the monitor dies silently. Investigate branch protection or conflicting pushes." ;
+            exit 1 ; }
+
+      - name: Open or refresh issue on alert (classed, deduped)
+        if: ${{ hashFiles('ALERT') != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          CLASS=$(tr -d '\n' < ALERT)
+          if [ "$CLASS" = "MONITOR-BROKEN" ]; then PREFIX="MONITOR BROKEN"; else PREFIX="Tripwire alert"; fi
+          EXISTING=$(gh issue list --state open --search "$PREFIX in:title" --json number --jq '.[0].number' || true)
+          if [ -n "$EXISTING" ]; then
+            gh issue comment "$EXISTING" --body-file report.md
+          else
+            gh issue create --title "$PREFIX — $(date -u +%F)" --body-file report.md
+          fi
+
+      - name: Dead-man for the check job itself
+        if: ${{ failure() }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh issue create \
+            --title "MONITOR BROKEN — check job failed $(date -u +%F)" \
+            --body "A step crashed before alerts could be evaluated (tests, fetch, check, or build). The dials are blind until fixed — see the run log." || true
+
+  deploy:
+    needs: check
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+      issues: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
+
+      - name: Dead-man for the deploy job
+        if: ${{ failure() }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh issue create --repo "$GITHUB_REPOSITORY" \
+            --title "MONITOR BROKEN — dashboard deploy failed $(date -u +%F)" \
+            --body "The check job succeeded but Pages deployment failed: the public page is now stale while data keeps flowing." || true

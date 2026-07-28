@@ -1,0 +1,7 @@
+run_date,obs_date,id,value,status
+2026-07-28,2026-07-27,credit.hy_oas,2.81,quiet
+2026-07-28,2026-07-27,credit.ccc_oas,10.01,quiet
+2026-07-28,2026-07-27,credit.dispersion,7.2,quiet
+2026-07-28,2026-07-27,credit.bbb_oas,1.0,quiet
+2026-07-28,2026-07-27,credit.ig_oas,0.81,quiet
+2026-07-28,2026-07-27,credit.ust10y,4.65,quiet
