@@ -169,5 +169,68 @@ assert 'class="tick"' in html_out and "CCC\u2212HY" in html_out, "dial ticker co
 assert "grid-template-columns:1fr}" in html_out, "mobile single-column rule missing"
 ok(f"glossary renders ({n_terms} terms) + filter; ticker codes + mobile layout present")
 
+# ---------- 29 Jul legibility pass: plain layer, rail grammar, neutral chips ----------
+html_out = bd.render(True)
+for pid, line in bd.PLAIN.items():
+    assert line[:40] in html_out, f"plain one-liner missing for {pid}"
+assert 'class="nowline"' in html_out and "Right now:" in html_out, "plain state line missing"
+assert "thesis-wrong rail" in html_out, "rail grammar (plain legend/reading) missing"
+assert 'class="delta up"' not in html_out and 'class="delta dn"' not in html_out, \
+    "drift chips must not wear alarm colors — status colors are reserved for status"
+for pg in ("start.html", "record.html", "log.html"):
+    assert pg in html_out, f"nav missing {pg}"
+assert 'data-tip=' in html_out, "inline glossary tips missing from index"
+ok("legibility: plain layer + rail grammar + neutral drift chips + full nav")
+
+# ---------- inline tips: hostile glossary definition is escaped ----------
+_orig_gloss = bd.GLOSSARY
+bd.GLOSSARY = {"Cat": [("OAS", EVIL)]}
+tip_html = bd.render(True)
+bd.GLOSSARY = _orig_gloss
+assert EVIL not in tip_html, "raw glossary payload must never reach a data-tip attribute"
+assert 'data-tip=' in tip_html, "tip span should still render, escaped"
+ok("tips: hostile definition escaped inside data-tip")
+
+# ---------- record page: pairing, tally, escaping, provenance, tolerance ----------
+jr = tmp / "journal_record.jsonl"
+jr.write_text(
+    '{"kind":"prediction","event":"Meta Q2 2026","prediction":"commitments ~$310bn",'
+    '"reasoning":"because velocity","ts":"2026-07-28T21:24:54+00:00"}\n'
+    '{"kind":"prediction","event":"' + EVIL.replace('"', '\\"') + '","prediction":"x",'
+    '"ts":"2026-07-28T22:00:00+00:00"}\n'
+    '{"kind":"score","event":"Meta Q2 2026","actual":"printed $301bn","verdict":"wrong",'
+    '"lesson":"velocity persists","ts":"2026-07-30T01:00:00+00:00"}\n'
+    '{"kind":"score","ev')
+_orig_j_rec = bd.JOURNAL_FILE
+bd.JOURNAL_FILE = jr
+rec = bd.render_record()
+bd.JOURNAL_FILE = _orig_j_rec
+assert '<div class="pk">Predictions</div><div class="tnum">2</div>' in rec, "tally: 2 predictions"
+assert '<div class="pk">Scored</div><div class="tnum">1</div>' in rec, "tally: 1 scored"
+assert "v-wrong" in rec and "printed $301bn" in rec and "velocity persists" in rec, \
+    "scored pair must show verdict, actual, lesson"
+assert "awaiting result" in rec, "unscored prediction must show as awaiting"
+assert EVIL not in rec, "hostile event name must be escaped on the record page"
+assert "commits/main/journal.jsonl" in rec, "record must link its git provenance"
+assert "unreadable journal line" in rec, "truncated line must degrade visibly (F7 parity)"
+ok("record: pairs scores to predictions, honest tally, escaped, provenanced")
+
+# ---------- log page: form link, field rules, id reference, authorship ----------
+lg = bd.render_log()
+assert "actions/workflows/journal.yml" in lg, "log must deep-link the dispatch form"
+assert "hyper.meta_commitments" in lg and 'class="twid"' in lg, "tripwire id reference missing"
+assert "only the repo's author can write" in lg, "authorship honesty line missing"
+assert "clear" in lg and "mixed" in lg, "field rules must mirror journal.yml validation"
+ok("log: dispatch form linked, fields documented, ids listed, authorship stated")
+
+# ---------- start page: orientation with boundaries intact ----------
+st = bd.render_start()
+assert "not investment advice" in st, "start page must carry the not-advice line"
+assert "will not tell you what to trade" in st, "the boundary must be stated as design"
+assert "Rule 10.7" in st and "refutation" in st, "refute-first must be taught"
+assert "stay solvent" in st, "the solvency adage belongs in the shorting section"
+assert 'record.html' in st and 'glossary.html' in st, "start must route to record + glossary"
+ok("start: orientation present, boundaries stated, refute-first taught")
+
 shutil.rmtree(tmp, ignore_errors=True)
 print(f"\nALL {PASS} REGRESSION TESTS PASS")
