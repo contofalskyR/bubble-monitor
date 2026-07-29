@@ -232,5 +232,19 @@ assert "stay solvent" in st, "the solvency adage belongs in the shorting section
 assert 'record.html' in st and 'glossary.html' in st, "start must route to record + glossary"
 ok("start: orientation present, boundaries stated, refute-first taught")
 
+# ---------- stage panel teaches itself: examples, floor translation, flip tips ----------
+a_probe = server.assess_stage(rows())
+for lbl, _ok, _lvl in a_probe["rules"]:
+    assert lbl in bd.STAGE_EXAMPLES, f"stage rule lacks an example (relabeled?): {lbl}"
+html_out = bd.render(True)
+assert "In plain terms" in html_out, "computed/floor/stamp must be translated to plain language"
+assert "What the stages mean" in html_out and "Priced as one" in html_out, \
+    "stage-names tip must render, built from server.STAGE_NAMES"
+assert "equity cure after the 28 Oct window closes" in html_out, \
+    "rule examples must reach the rendered panel"
+assert "tipPlace" in html_out and "--tipx" in html_out and "flipy" in html_out, \
+    "tips must be JS-placed: clamped inside the viewport, flipping above when low"
+ok("stage panel: every rule carries an example; floor translated; tips flip to fit")
+
 shutil.rmtree(tmp, ignore_errors=True)
 print(f"\nALL {PASS} REGRESSION TESTS PASS")

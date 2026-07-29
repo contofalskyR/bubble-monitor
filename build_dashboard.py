@@ -29,7 +29,7 @@ from pathlib import Path
 
 from glossary import GLOSSARY, INTRO
 from server import (FRED_KEY, fred_latest, spread_window, evaluate, assess_stage,
-                    _load, TRIPWIRES_FILE, CALENDAR_FILE, JOURNAL_FILE)
+                    STAGE_NAMES, _load, TRIPWIRES_FILE, CALENDAR_FILE, JOURNAL_FILE)
 
 ROOT = Path(__file__).resolve().parent
 OUT = ROOT / "docs" / "index.html"
@@ -60,8 +60,60 @@ PLAIN = {
 }
 
 
+# Concrete, report-anchored example for every declared stage rule — display
+# layer only; the rules themselves live in server.assess_stage(), the single
+# source of truth. Keys must match the rule labels exactly (selftest enforces
+# full coverage, so a relabeled rule fails the build instead of silently
+# losing its example).
+STAGE_EXAMPLES = {
+    "HY index crossed 4.50 (systemic repricing)":
+        "Example: high-yield OAS closes above 4.50 and stays there for 10 straight "
+        "sessions — junk borrowing costs at panic levels versus ~2.8 in the report. "
+        "At that point the whole market is repricing, not just the periphery.",
+    "2+ vehicle-level binary events confirmed":
+        "Example: CoreWeave exercises an equity cure after the 28 Oct window closes "
+        "AND Oracle cancels not-yet-commenced leases — two separate financing "
+        "vehicles breaking. This is the shape the thesis says the ending takes.",
+    "A vehicle-level binary event confirmed (cures / liquidity / lease cancellation)":
+        "Example: any one of — an equity cure used after 28 Oct 2026, CoreWeave cash "
+        "under 0.25x of current debt with no raise completed, or Oracle's "
+        "not-yet-commenced leases dropping over 10% in a quarter with no matching "
+        "right-of-use increase (which would mean cancellation).",
+    "3+ periphery tripwires confirmed":
+        "Example: Oracle converting under 10% of its contracted revenue within a "
+        "year, CoreWeave backlog declining sequentially, and NVIDIA's top-3 "
+        "receivables past 70% with rising DSO — three periphery wires at once.",
+    "Any credit dial crossed its confirm threshold":
+        "Example: CCC OAS closing above 13.00, or the CCC−HY gap above 9.00pp — any "
+        "of the six FRED dials actually crossing its coral rail on the Now page.",
+    "3+ confirms across all categories":
+        "Example: Vertiv keeps its backlog undisclosed, Meta's commitments decline, "
+        "and NVIDIA's supply commitments drop over 15% — three confirmed wires "
+        "anywhere on the board, in any mix.",
+    "2+ dials at 85%+ of the way to confirm":
+        "Example: dispersion at 8.6pp and CCC at 12.4 — both pressed to within 15% "
+        "of their coral rails without crossing. Pressure without the print.",
+    "First confirm anywhere":
+        "Example: a single wire anywhere goes to confirm — say Vertiv stays silent "
+        "on its backlog again. One is enough to lift the computed stage off zero.",
+    "Dispersion 50%+ of the way to confirm":
+        "Example: the CCC−HY gap at 7.50pp — halfway from its 6.00 refute rail to "
+        "its 9.00 confirm rail. The report's 25 Jul value, 7.14, is 38% of the way.",
+    "Any dial running hot (70%+ to confirm)":
+        "Example: any dial glowing gold (“warm”) on the Now page — 70%+ of the "
+        "distance from its refute rail to its confirm rail. Attention, not evidence.",
+}
+
+
 def esc(s) -> str:
     return html.escape(str(s))
+
+
+def tip_span(label: str, tip: str) -> str:
+    """A term with a tap/hover definition; positioning JS flips the tip to
+    whichever side of the term has room."""
+    return (f'<span class="dfn" role="button" tabindex="0" '
+            f'data-tip="{esc(tip)}">{esc(label)}</span>')
 
 
 # ---------------------------------------------------------------- glossary tips
@@ -84,10 +136,7 @@ def _tipdef(label: str) -> str | None:
 def dfn(label: str, term: str | None = None) -> str:
     """Wrap a term with a tap-to-reveal definition pulled from the glossary."""
     d = _tipdef(term or label)
-    if not d:
-        return esc(label)
-    return (f'<span class="dfn" role="button" tabindex="0" '
-            f'data-tip="{esc(d)}">{esc(label)}</span>')
+    return tip_span(label, d) if d else esc(label)
 
 
 def sample_series(series_id: str, n: int = 30) -> list[tuple[str, float]]:
@@ -370,12 +419,16 @@ margin:18px 0;font-weight:500}
 .thesisbody p{margin:14px 0}.thesisbody .sec{color:var(--gold);font-size:11px;
 text-transform:uppercase;letter-spacing:.2em;margin-top:26px;font-family:var(--mono)}
 .dfn{border-bottom:1px dotted rgba(227,196,127,.65);cursor:help;position:relative}
-.dfn::after{content:attr(data-tip);position:absolute;left:0;top:calc(100% + 8px);
+.dfn::after{content:attr(data-tip);position:fixed;left:var(--tipx,12px);top:var(--tipy,auto);
 width:min(320px,76vw);background:#141b2c;border:1px solid rgba(227,196,127,.35);
 padding:10px 12px;border-radius:8px;font-family:var(--sans);font-size:12.5px;line-height:1.6;
 color:var(--ink);display:none;z-index:6;text-transform:none;letter-spacing:0;font-weight:400;
 box-shadow:0 12px 30px -10px rgba(0,0,0,.7)}
 .dfn.show::after{display:block}
+.dfn.flipy::after{top:auto;bottom:var(--tipb,auto)}
+@media (hover:hover){.dfn:hover::after{display:block}}
+.plainstage{font-family:var(--sans);font-size:13px;line-height:1.65;color:var(--ink);margin-top:12px}
+.plainstage b{color:var(--text)}
 .tally{display:flex;gap:10px;flex-wrap:wrap;margin:16px 0 4px}
 .tcell{flex:1;min-width:96px;background:var(--panel);border:1px solid var(--line);
 border-radius:10px;padding:10px 12px;text-align:left}
@@ -470,15 +523,36 @@ FONTS = ('<link rel="preconnect" href="https://fonts.googleapis.com">\n'
          '0,9..144,400;0,9..144,480;0,9..144,560;1,9..144,400&family=Spline+Sans+Mono:'
          'wght@400;500&family=Spline+Sans:wght@400;500;600&display=swap" rel="stylesheet">')
 
-# tap-to-reveal definitions; closes others; Esc dismisses
+# tap/hover definitions. The tip is position:fixed and PLACED BY JS — anchoring
+# an absolute tip to a line-wrapped inline span is browser-fragile (it pins to a
+# single line fragment and can leave the screen). tipPlace clamps the tip inside
+# the viewport horizontally and opens it below the term, or above (flipy) when
+# the term sits in the lower part of the screen. Scroll dismisses; Esc dismisses.
 TIP_JS = """
+function tipPlace(t){
+  var r=t.getBoundingClientRect();
+  var w=Math.min(320,window.innerWidth*0.76);
+  var x=Math.max(8,Math.min(r.left,window.innerWidth-w-8));
+  t.style.setProperty('--tipx',x+'px');
+  if(r.bottom>window.innerHeight-220){
+    t.classList.add('flipy');
+    t.style.setProperty('--tipb',(window.innerHeight-r.top+8)+'px');
+  }else{
+    t.classList.remove('flipy');
+    t.style.setProperty('--tipy',(r.bottom+8)+'px');
+  }
+}
+function tipCloseAll(){document.querySelectorAll('.dfn.show').forEach(function(d){d.classList.remove('show')});}
+document.addEventListener('mouseover',function(e){
+  var t=e.target.closest&&e.target.closest('.dfn');if(t)tipPlace(t);});
 document.addEventListener('click',function(e){
-  var t=e.target.closest('.dfn');
+  var t=e.target.closest&&e.target.closest('.dfn');
   document.querySelectorAll('.dfn.show').forEach(function(d){if(d!==t)d.classList.remove('show')});
-  if(t)t.classList.toggle('show');});
+  if(t){tipPlace(t);t.classList.toggle('show');}});
+document.addEventListener('scroll',tipCloseAll,{passive:true});
 document.addEventListener('keydown',function(e){
-  if(e.key==='Escape')document.querySelectorAll('.dfn.show').forEach(function(d){d.classList.remove('show')});
-  if(e.key==='Enter'&&e.target.classList&&e.target.classList.contains('dfn'))e.target.classList.toggle('show');});
+  if(e.key==='Escape')tipCloseAll();
+  if(e.key==='Enter'&&e.target.classList&&e.target.classList.contains('dfn')){tipPlace(e.target);e.target.classList.toggle('show');}});
 """
 
 NAV_ITEMS = [("start.html", "Start here", "start"), ("index.html", "Now", "now"),
@@ -721,8 +795,19 @@ def render(sample: bool) -> str:
         crits = "".join(
             f'<div class="crit{" pass" if ok else ""}" style="transition-delay:{i*55}ms">'
             f'<span class="lvl">S{lvl}</span><span class="mark">{"✦" if ok else "·"}</span>'
-            f'<span>{esc(lbl)}</span></div>'
+            f'<span>{tip_span(lbl, STAGE_EXAMPLES[lbl]) if lbl in STAGE_EXAMPLES else esc(lbl)}</span></div>'
             for i, (lbl, ok, lvl) in enumerate(a["rules"]))
+        stages_tip = ("The five stages: "
+                      + " · ".join(f"{i} {STAGE_NAMES[i]}" for i in sorted(STAGE_NAMES))
+                      + ". The highest rung whose rule is satisfied sets the computed stage; "
+                        "a report-derived floor can hold the stamp higher until that prior expires. "
+                        "Each rule above carries a concrete example — tap it.")
+        review_by = _load(TRIPWIRES_FILE).get("_meta", {}).get("baseline_review_by", "")
+        expiry = f" (expires after {esc(review_by)} unless deliberately renewed)" if review_by and a["floor"] else ""
+        plain_floor = (f'In plain terms: the satisfied rules above reach <b>Stage {a["computed"]}</b> '
+                       f'on their own; the report\'s own July 2026 assessment sets a floor of '
+                       f'<b>{a["floor"]}</b>{expiry}; the stamp shows the higher of the two. '
+                       f'{tip_span("What the stages mean", stages_tip)}.')
         overlay = f'<div class="overlay">{esc(a["refute_overlay"])}</div>' if a["refute_overlay"] else ""
         bands = ""
         if a["evidence_note"]:
@@ -741,6 +826,7 @@ report's — the report defines tripwires and dates; the staging is our synthesi
 <div id="stagepanel">
 {crits}
 <div style="margin-top:16px"><span class="stamp gold">Stage {a["stage"]} · {esc(a["name"])}</span></div>
+<div class="plainstage">{plain_floor}</div>
 {bands}{overlay}
 <div class="stageev">
 <b>Computed {a["computed"]}, baseline floor {a["floor"]} of prior {a["baseline"]}</b> — {esc(a["baseline_note"])}<br>
