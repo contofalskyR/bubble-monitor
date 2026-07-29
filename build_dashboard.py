@@ -185,14 +185,28 @@ def spark_area(values: list[float], uid: str, tone: str,
         f'<circle cx="{lx:.1f}" cy="{ly:.1f}" r="2.4" fill="{tone}"/></svg>')
 
 
+# Tips for the gauge row — every dial rendered by gauge() has its refute rail
+# below and confirm rail above (inverted dials are manual-only, per BACKLOG F17)
+GAUGE_TIP_R = ("The hard line on the thesis-wrong side. At or below this number the dial "
+               "refutes: evidence against the thesis. House rule: check this side first.")
+GAUGE_TIP_C = ("The hard line on the thesis-right side. Above this number (for however many "
+               "sessions the dial requires) it confirms: evidence the thesis is playing out.")
+GAUGE_TIP_DR = ("Distance between today's value and the refute line below it. "
+                "Reaching 0 means touching the thesis-wrong rail.")
+GAUGE_TIP_DC = ("Distance still left before the confirm line above. "
+                "Reaching 0 means touching the thesis-right rail.")
+
+
 def gauge(cur: float, r_lt: float, c_gt: float) -> str:
     span = c_gt - r_lt
     pos = max(0.0, min(1.0, (cur - r_lt) / span)) * 100 if span else 50.0
     dc, dr = c_gt - cur, cur - r_lt
     return (
         f'<div class="gauge"><div class="gtrack"><div class="gdot" style="left:{pos:.1f}%"></div></div>'
-        f'<div class="gmeta"><span class="gr">refute {r_lt:g} · Δ{dr:+g}</span>'
-        f'<span class="gc">Δ{dc:+g} · confirm {c_gt:g}</span></div></div>')
+        f'<div class="gmeta"><span class="gr">{tip_span(f"refute {r_lt:g}", GAUGE_TIP_R)} · '
+        f'{tip_span(f"Δ{dr:+g}", GAUGE_TIP_DR)}</span>'
+        f'<span class="gc">{tip_span(f"Δ{dc:+g}", GAUGE_TIP_DC)} · '
+        f'{tip_span(f"confirm {c_gt:g}", GAUGE_TIP_C)}</span></div></div>')
 
 
 def reading(status: str, prox: float, sessions: int) -> str:
@@ -348,9 +362,15 @@ white-space:nowrap;flex-shrink:0;color:var(--mut)}
 .reading.rw b{color:var(--gold)}.reading.rq b{color:var(--quiet)}
 .spark{height:34px;margin:4px 0 6px}.spark svg{width:100%;height:34px;display:block}
 .gauge{margin-top:2px}
-.gtrack{position:relative;height:3px;border-radius:2px;
-background:linear-gradient(90deg,rgba(124,179,255,.55),rgba(150,160,181,.25) 42%,rgba(227,196,127,.35) 72%,rgba(244,105,75,.6))}
-.gdot{position:absolute;top:-3.5px;width:10px;height:10px;border-radius:50%;
+.gtrack{position:relative;height:4px;border-radius:2px;margin:5px 3px 0;
+background:rgba(255,255,255,.13)}
+/* the rails are HARD LINES in evaluate(), so they render as hard lines here:
+   crisp end caps at the exact refute (blue) and confirm (coral) positions,
+   neutral wire between — not a gradient continuum */
+.gtrack::before,.gtrack::after{content:"";position:absolute;top:-5px;width:3px;height:14px;border-radius:2px}
+.gtrack::before{left:-3px;background:var(--refute)}
+.gtrack::after{right:-3px;background:var(--confirm)}
+.gdot{position:absolute;top:-3px;width:10px;height:10px;border-radius:50%;z-index:1;
 background:var(--text);transform:translateX(-50%);box-shadow:0 0 10px rgba(236,231,220,.7)}
 .gmeta{display:flex;justify-content:space-between;font-size:11px;margin-top:6px;letter-spacing:.02em}
 .gmeta span{white-space:nowrap}
@@ -430,7 +450,10 @@ text-transform:uppercase;letter-spacing:.2em;margin-top:26px;font-family:var(--m
 width:min(320px,76vw);background:#141b2c;border:1px solid rgba(227,196,127,.35);
 padding:10px 12px;border-radius:8px;font-family:var(--sans);font-size:12.5px;line-height:1.6;
 color:var(--ink);display:none;z-index:6;text-transform:none;letter-spacing:0;font-weight:400;
+white-space:normal;overflow-wrap:break-word;text-align:left;
 box-shadow:0 12px 30px -10px rgba(0,0,0,.7)}
+/* white-space:normal is load-bearing: chips and gauge labels set nowrap, and the
+   tip pseudo-element inherits it — without this, tip text runs out of its box */
 .dfn.show::after{display:block}
 .dfn.flipy::after{top:auto;bottom:var(--tipb,auto)}
 @media (hover:hover){.dfn:hover::after{display:block}}

@@ -248,5 +248,15 @@ assert "tipPlace" in html_out and "--tipx" in html_out and "flipy" in html_out, 
     "tips must be JS-placed: clamped inside the viewport, flipping above when low"
 ok("stage panel: every rule carries an example; floor translated; tips flip to fit")
 
+# ---------- gauge: hard rails, tipped labels, tips wrap inside their box ----------
+html_out = bd.render(True)
+assert "white-space:normal" in html_out, \
+    "tip box must force wrapping — nowrap ancestors (chips, gauge labels) leak into ::after"
+assert ".gtrack::before" in html_out and ".gtrack::after" in html_out, \
+    "rails must render as hard end caps, not a gradient continuum"
+assert html_out.count("thesis-wrong side") >= 6, "every gauge needs a tipped refute label"
+assert html_out.count("thesis-right side") >= 6, "every gauge needs a tipped confirm label"
+ok("gauge: hard rail caps, refute/confirm/delta tips on all six dials, tips wrap")
+
 shutil.rmtree(tmp, ignore_errors=True)
 print(f"\nALL {PASS} REGRESSION TESTS PASS")
