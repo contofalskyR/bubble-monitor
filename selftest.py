@@ -156,5 +156,18 @@ assert "Nearest threshold" in html_out, "F11 symmetric pulse"
 assert "month-verified" in html_out, "F9 honest date precision"
 ok("sample build: no fabricated alerts; F19/F11/F9 surfaces present")
 
+
+# ---------- glossary & legibility surfaces ----------
+gg = bd.render_glossary()
+n_terms = gg.count('class="gent"')
+assert n_terms >= 75, f"glossary too thin: {n_terms} terms"
+assert 'id="gq"' in gg and "addEventListener" in gg, "glossary filter missing"
+assert "Equity cure" in gg and "4.61" in gg and "3.58x" in gg, "key anchored entries missing"
+html_out = bd.render(True)
+assert 'glossary.html' in html_out, "nav must link the glossary"
+assert 'class="tick"' in html_out and "CCC\u2212HY" in html_out, "dial ticker codes missing"
+assert "grid-template-columns:1fr}" in html_out, "mobile single-column rule missing"
+ok(f"glossary renders ({n_terms} terms) + filter; ticker codes + mobile layout present")
+
 shutil.rmtree(tmp, ignore_errors=True)
 print(f"\nALL {PASS} REGRESSION TESTS PASS")

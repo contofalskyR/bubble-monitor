@@ -20,6 +20,7 @@ import sys
 from datetime import date
 from pathlib import Path
 
+from glossary import GLOSSARY, INTRO
 from server import (FRED_KEY, fred_latest, spread_window, evaluate, assess_stage,
                     _load, TRIPWIRES_FILE, CALENDAR_FILE, JOURNAL_FILE)
 
@@ -27,6 +28,10 @@ ROOT = Path(__file__).resolve().parent
 OUT = ROOT / "docs" / "index.html"
 
 # Report values as of 25 Jul 2026 — used only in --sample preview mode
+DIAL_CODE = {"credit.hy_oas": "HY", "credit.ccc_oas": "CCC",
+             "credit.dispersion": "CCC\u2212HY", "credit.bbb_oas": "BBB",
+             "credit.ig_oas": "IG", "credit.ust10y": "10Y"}
+
 SAMPLE_END = {"BAMLH0A0HYM2": 2.77, "BAMLH0A3HYC": 9.91, "BAMLC0A4CBBB": 0.98,
               "BAMLC0A0CM": 0.79, "DGS10": 4.71}
 
@@ -132,8 +137,8 @@ def gather_dials(sample: bool):
 
 
 CSS = """
-:root{--bg:#0a0d14;--panel:rgba(255,255,255,.032);--line:rgba(255,255,255,.085);
---text:#ece7dc;--mut:#96a0b5;--gold:#e3c47f;--confirm:#f4694b;--refute:#7cb3ff;--quiet:#9db894}
+:root{--bg:#0a0d14;--panel:rgba(255,255,255,.032);--line:rgba(255,255,255,.095);
+--text:#ece7dc;--mut:#aab4c7;--gold:#e3c47f;--confirm:#f4694b;--refute:#7cb3ff;--quiet:#9db894}
 *{box-sizing:border-box;margin:0}
 html{scroll-behavior:smooth}
 body{background:var(--bg);color:var(--text);
@@ -185,8 +190,9 @@ padding:14px 14px 12px;backdrop-filter:blur(6px);transition:border-color .3s}
 .card.confirm{border-color:rgba(244,105,75,.55);box-shadow:0 0 34px -8px rgba(244,105,75,.4)}
 .card.refute{border-color:rgba(124,179,255,.5);box-shadow:0 0 34px -8px rgba(124,179,255,.35)}
 .chead{display:flex;justify-content:space-between;align-items:baseline;gap:6px}
-.cname{font-size:11px;color:var(--mut);letter-spacing:.04em}
-.delta{font-size:10.5px;padding:2px 7px;border-radius:99px;border:1px solid var(--line)}
+.tick{font-size:16px;font-weight:500;color:var(--text);letter-spacing:.08em;margin-bottom:2px}
+.cname{font-size:11.5px;color:var(--mut);letter-spacing:.03em;line-height:1.35}
+.delta{font-size:10px;padding:2px 7px;border-radius:99px;border:1px solid var(--line);white-space:nowrap;flex-shrink:0}
 .delta.up{color:var(--confirm);border-color:rgba(244,105,75,.3)}
 .delta.dn{color:var(--refute);border-color:rgba(124,179,255,.3)}
 .val{font-family:"Fraunces",Georgia,serif;font-weight:560;font-size:33px;margin:4px 0 2px;letter-spacing:.3px}
@@ -197,9 +203,10 @@ padding:14px 14px 12px;backdrop-filter:blur(6px);transition:border-color .3s}
 background:linear-gradient(90deg,rgba(124,179,255,.55),rgba(150,160,181,.25) 42%,rgba(227,196,127,.35) 72%,rgba(244,105,75,.6))}
 .gdot{position:absolute;top:-3.5px;width:10px;height:10px;border-radius:50%;
 background:var(--text);transform:translateX(-50%);box-shadow:0 0 10px rgba(236,231,220,.7)}
-.gmeta{display:flex;justify-content:space-between;font-size:9.5px;margin-top:6px;letter-spacing:.03em}
+.gmeta{display:flex;justify-content:space-between;font-size:10.5px;margin-top:6px;letter-spacing:.02em}
+.gmeta span{white-space:nowrap}
 .gr{color:var(--refute);opacity:.9}.gc{color:var(--confirm);opacity:.9}
-.tag{font-size:10px;margin-top:9px;letter-spacing:.06em}
+.tag{font-size:11px;margin-top:9px;letter-spacing:.05em}
 .tag.v{color:var(--quiet)}.tag.r,.tag.g{color:var(--gold)}
 .gapnote{font-size:11px;color:var(--mut);margin-top:6px;line-height:1.5;word-break:break-word}
 .gaperr{color:var(--gold)}
@@ -262,7 +269,23 @@ margin:18px 0;font-weight:500}
 .thesisbody{font-size:14.5px;line-height:1.75;color:var(--text)}
 .thesisbody p{margin:14px 0}.thesisbody .sec{color:var(--gold);font-size:10.5px;
 text-transform:uppercase;letter-spacing:.2em;margin-top:26px}
-@media (max-width:390px){.val{font-size:27px}.masthead{font-size:29px}}
+@media (max-width:600px){
+  .grid{grid-template-columns:1fr}
+  .val{font-size:42px}
+  .spark,.spark svg{height:44px}
+  .cname{font-size:12.5px}
+  body{font-size:16px}
+}
+@media (max-width:390px){.masthead{font-size:29px}}
+.gfilter{width:100%;padding:13px 14px;background:var(--panel);border:1px solid var(--line);
+color:var(--text);font:inherit;font-size:16px;border-radius:10px;margin:14px 0 6px}
+.gfilter::placeholder{color:var(--mut)}
+.gent{padding:13px 0;border-bottom:1px solid rgba(255,255,255,.06)}
+.gterm{font-family:"Fraunces",Georgia,serif;font-weight:480;font-size:16.5px;letter-spacing:.2px}
+.gdef{font-size:13.5px;line-height:1.75;color:#c9d0dd;margin-top:5px}
+.gintro{margin:6px 0 4px}
+.gintro h3{font-family:"Fraunces",Georgia,serif;font-weight:480;font-size:15.5px;color:var(--gold);margin:18px 0 6px}
+.gintro p{font-size:13.5px;line-height:1.75;color:#c9d0dd}
 @media (prefers-reduced-motion:reduce){
   html{scroll-behavior:auto}
   .bubbles i{animation:none;display:none}
@@ -346,7 +369,8 @@ def render(sample: bool) -> str:
     cards = []
     for i, d in enumerate(dials):
         if "gap" in d:
-            cards.append(f'<div class="card"><div class="cname">{esc(d["name"])}</div>'
+            cards.append(f'<div class="card"><div class="tick">{DIAL_CODE.get(d["id"], "")}</div>'
+                         f'<div class="cname">{esc(d["name"])}</div>'
                          f'<div class="tag g">[G] no fetch</div>'
                          f'<div class="gapnote"><span class="gaperr">{esc(d["gap"])}</span><br>'
                          f'A dark dial is a finding, not a pass — if this persists, the series '
@@ -361,7 +385,8 @@ def render(sample: bool) -> str:
                 else "#e3c47f")
         cards.append(
             f'<div class="card {d["status"]}{halo}">'
-            f'<div class="chead"><div class="cname">{esc(d["name"])}</div>'
+            f'<div class="chead"><div><div class="tick">{DIAL_CODE.get(d["id"], "")}</div>'
+            f'<div class="cname">{esc(d["name"])}</div></div>'
             f'<span class="delta {dcls}">{darrow} {d["delta"]:+g} · 30 sess</span></div>'
             f'<div class="val">{d["cur"]:g}</div>'
             f'<div class="spark">{spark_area(d["vals"], str(i), tone, (d["r_lt"], d["c_gt"]))}</div>'
@@ -476,7 +501,7 @@ Confirms: {esc(", ".join(a["confirms"]) or "none")} · Refutes: {esc(", ".join(a
 <style>{CSS}</style></head>
 <body>
 <div class="bubbles">{BUBBLES}</div>
-<nav class="topnav"><span class="on">Live appendix</span><a href="#stage">Stage</a><a href="thesis.html">Thesis</a></nav>
+<nav class="topnav"><span class="on">Live appendix</span><a href="#stage">Stage</a><a href="thesis.html">Thesis</a><a href="glossary.html">Glossary</a></nav>
 <div class="eyebrow">Live appendix · Section 10</div>
 <div class="masthead">The Useful Life<br>of a <em>Bubble</em></div>
 <div class="rule"></div>
@@ -532,7 +557,7 @@ def render_thesis() -> str:
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,480;0,9..144,560;1,9..144,400&family=Spline+Sans+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>{CSS}</style></head>
 <body>
-<nav class="topnav"><a href="index.html">Live appendix</a><a href="index.html#stage">Stage</a><span class="on">Thesis</span></nav>
+<nav class="topnav"><a href="index.html">Live appendix</a><a href="index.html#stage">Stage</a><span class="on">Thesis</span><a href="glossary.html">Glossary</a></nav>
 <div class="eyebrow">The document · 25 July 2026</div>
 <div class="masthead">The Useful Life<br>of a <em>Bubble</em></div>
 <div class="rule"></div>
@@ -551,6 +576,43 @@ Rule 10.7. The stage taxonomy is the monitor's construction, not the report's.</
 </body></html>"""
 
 
+def render_glossary() -> str:
+    intro = "".join(f'<h3>{esc(h)}</h3><p>{esc(b)}</p>' for h, b in INTRO)
+    sections = []
+    for cat, entries in GLOSSARY.items():
+        ents = "".join(
+            f'<div class="gent"><div class="gterm">{esc(t)}</div>'
+            f'<div class="gdef">{esc(d)}</div></div>'
+            for t, d in entries)
+        sections.append(f'<div class="gcat"><h2>{esc(cat)} · {len(entries)}</h2>{ents}</div>')
+    total = sum(len(v) for v in GLOSSARY.values())
+    return f"""<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark"><title>Glossary — The Useful Life of a Bubble</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,480;0,9..144,560;1,9..144,400&family=Spline+Sans+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>{CSS}</style></head>
+<body>
+<nav class="topnav"><a href="index.html">Live appendix</a><a href="index.html#stage">Stage</a><a href="thesis.html">Thesis</a><span class="on">Glossary</span></nav>
+<div class="eyebrow">Field guide · {total} terms</div>
+<div class="masthead">Glossary</div>
+<div class="rule"></div>
+<div class="gintro">{intro}</div>
+<input class="gfilter" id="gq" type="search" placeholder="Filter terms — try: cure, OAS, useful life, RPO…" autocomplete="off">
+{"".join(sections)}
+<footer>Every definition is anchored to the report's own figures (25 Jul 2026). Terms are defined
+by use — the way the vocabulary actually sticks. Research tooling only — not investment advice.</footer>
+<script>
+const q=document.getElementById('gq');
+q.addEventListener('input',()=>{{const s=q.value.toLowerCase();
+document.querySelectorAll('.gent').forEach(e=>{{e.style.display=e.textContent.toLowerCase().includes(s)?'':'none'}});
+document.querySelectorAll('.gcat').forEach(c=>{{c.style.display=[...c.querySelectorAll('.gent')].some(e=>e.style.display!=='none')?'':'none'}});}});
+</script>
+</body></html>"""
+
+
 def main() -> None:
     sample = "--sample" in sys.argv
     if not sample and not FRED_KEY:
@@ -558,7 +620,8 @@ def main() -> None:
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(render(sample))
     (ROOT / "docs" / "thesis.html").write_text(render_thesis())
-    print(f"Wrote {OUT} + thesis.html ({'sample preview' if sample else 'live'})")
+    (ROOT / "docs" / "glossary.html").write_text(render_glossary())
+    print(f"Wrote {OUT} + thesis.html + glossary.html ({'sample preview' if sample else 'live'})")
 
 
 if __name__ == "__main__":
