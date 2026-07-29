@@ -180,6 +180,8 @@ assert 'class="delta up"' not in html_out and 'class="delta dn"' not in html_out
 for pg in ("start.html", "record.html", "log.html"):
     assert pg in html_out, f"nav missing {pg}"
 assert 'data-tip=' in html_out, "inline glossary tips missing from index"
+assert html_out.count('<div class="cname"><span class="dfn"') == 6, \
+    "every dial card's name must carry a glossary tip"
 ok("legibility: plain layer + rail grammar + neutral drift chips + full nav")
 
 # ---------- inline tips: hostile glossary definition is escaped ----------

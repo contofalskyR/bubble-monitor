@@ -43,6 +43,11 @@ DIAL_CODE = {"credit.hy_oas": "HY", "credit.ccc_oas": "CCC",
 SAMPLE_END = {"BAMLH0A0HYM2": 2.77, "BAMLH0A3HYC": 9.91, "BAMLC0A4CBBB": 0.98,
               "BAMLC0A0CM": 0.79, "DGS10": 4.71}
 
+# Which glossary term defines each dial — powers the tap/hover tip on card names
+CARD_TERM = {"credit.hy_oas": "High-yield (HY)", "credit.ccc_oas": "CCC",
+             "credit.dispersion": "Dispersion (CCC minus HY)", "credit.bbb_oas": "BBB",
+             "credit.ig_oas": "Investment grade (IG)", "credit.ust10y": "10-year Treasury"}
+
 # Plain-English one-liner per auto dial — the novice layer (29 Jul legibility pass)
 PLAIN = {
     "credit.hy_oas": "The extra yield junk-rated borrowers pay over Treasuries — "
@@ -322,7 +327,9 @@ padding:12px 14px;margin:0 0 14px;font-family:var(--sans);font-size:13px;line-he
 .howto b.c{color:var(--confirm);font-weight:600}.howto b.r{color:var(--refute);font-weight:600}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;
-padding:14px 14px 12px;backdrop-filter:blur(6px);transition:border-color .3s}
+padding:14px 14px 12px;transition:border-color .3s}
+/* no backdrop-filter on .card: it would make the card the containing block for
+   position:fixed, throwing every glossary tip inside a card off-screen */
 .card.warm{border-color:rgba(227,196,127,.4);box-shadow:0 0 30px -10px rgba(227,196,127,.35)}
 .card.cool{border-color:rgba(124,179,255,.35);box-shadow:0 0 30px -12px rgba(124,179,255,.3)}
 .card.confirm{border-color:rgba(244,105,75,.55);box-shadow:0 0 34px -8px rgba(244,105,75,.4)}
@@ -542,14 +549,16 @@ function tipPlace(t){
     t.style.setProperty('--tipy',(r.bottom+8)+'px');
   }
 }
+var tipAnchorY=0;
 function tipCloseAll(){document.querySelectorAll('.dfn.show').forEach(function(d){d.classList.remove('show')});}
 document.addEventListener('mouseover',function(e){
   var t=e.target.closest&&e.target.closest('.dfn');if(t)tipPlace(t);});
 document.addEventListener('click',function(e){
   var t=e.target.closest&&e.target.closest('.dfn');
   document.querySelectorAll('.dfn.show').forEach(function(d){if(d!==t)d.classList.remove('show')});
-  if(t){tipPlace(t);t.classList.toggle('show');}});
-document.addEventListener('scroll',tipCloseAll,{passive:true});
+  if(t){tipPlace(t);t.classList.toggle('show');tipAnchorY=window.scrollY;}});
+document.addEventListener('scroll',function(){
+  if(Math.abs(window.scrollY-tipAnchorY)>24)tipCloseAll();},{passive:true});
 document.addEventListener('keydown',function(e){
   if(e.key==='Escape')tipCloseAll();
   if(e.key==='Enter'&&e.target.classList&&e.target.classList.contains('dfn')){tipPlace(e.target);e.target.classList.toggle('show');}});
@@ -737,8 +746,8 @@ def render(sample: bool) -> str:
     for i, d in enumerate(dials):
         if "gap" in d:
             cards.append(f'<div class="card"><div class="tick">{DIAL_CODE.get(d["id"], "")}</div>'
-                         f'<div class="cname">{esc(d["name"])}</div>'
-                         f'<div class="tag g">[G] no fetch</div>'
+                         f'<div class="cname">{dfn(d["name"], CARD_TERM.get(d["id"]))}</div>'
+                         f'<div class="tag g">{dfn("[G]", "Provenance tags")} no fetch</div>'
                          f'<div class="gapnote"><span class="gaperr">{esc(d["gap"])}</span><br>'
                          f'A dark dial is a finding, not a pass — if this persists, the series '
                          f'may have changed or been withdrawn.</div></div>')
@@ -753,14 +762,14 @@ def render(sample: bool) -> str:
         cards.append(
             f'<div class="card {d["status"]}{halo}">'
             f'<div class="chead"><div><div class="tick">{DIAL_CODE.get(d["id"], "")}</div>'
-            f'<div class="cname">{esc(d["name"])}</div></div>'
-            f'<span class="delta">{darrow} {d["delta"]:+g} · 30 sess</span></div>'
+            f'<div class="cname">{dfn(d["name"], CARD_TERM.get(d["id"]))}</div></div>'
+            f'<span class="delta">{darrow} {d["delta"]:+g} · {dfn("30 sess", "Session")}</span></div>'
             f'<div class="val">{d["cur"]:g}</div>'
             f'{reading(d["status"], d["prox"], d["sessions"])}'
             f'<div class="spark">{spark_area(d["vals"], str(i), tone, (d["r_lt"], d["c_gt"]))}</div>'
             f'{gauge(d["cur"], d["r_lt"], d["c_gt"])}'
             f'<div class="plain">{esc(plain)}</div>'
-            f'<div class="tag {"v" if d["tag"] == "V" else "r"}">[{d["tag"]}] {esc(d["asof"])}'
+            f'<div class="tag {"v" if d["tag"] == "V" else "r"}">{dfn("[" + d["tag"] + "]", "Provenance tags")} {esc(d["asof"])}'
             f'{" · " + str(d["sessions"]) + "-session rule" if d["sessions"] > 1 else ""}</div>'
             f'</div>')
 

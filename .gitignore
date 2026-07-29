@@ -5,3 +5,7 @@ __pycache__/
 report.md
 ALERT
 # data/ and journal.jsonl are deliberately NOT ignored - they ARE the record
+# Built pages are artifacts, not source: Pages serves the uploaded artifact, and
+# tracked copies made the CI heartbeat's rebase fail ("unstaged changes") the
+# moment a rebuild differed from the committed copy. docs/thesis.pdf stays tracked.
+docs/*.html
