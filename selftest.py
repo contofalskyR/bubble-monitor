@@ -267,6 +267,8 @@ assert 'id="stalenote"' in html_out and "corrected to today" in html_out, \
 assert "classList.add('past')" in html_out, "past events must dim, not show +0d forever"
 import datetime as _dt
 assert _dt.date.today().isoformat() in html_out, "build date must be embedded for staleness math"
+assert "rebuild now" in html_out and "actions/workflows/daily_check.yml" in html_out, \
+    "the author's rebuild switch must be surfaced on the page"
 ok("live dates: chips recount from the reader's today; stale builds disclose themselves")
 
 shutil.rmtree(tmp, ignore_errors=True)

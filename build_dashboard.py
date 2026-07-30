@@ -317,6 +317,9 @@ font-size:12.5px;border-radius:5px;background:rgba(157,184,148,.05)}
 .stamp.dark{border-color:var(--gold);color:var(--gold);background:rgba(227,196,127,.05)}
 .stamp.gold{border-color:var(--gold);color:var(--gold);background:rgba(227,196,127,.05)}
 .stampdate{color:var(--mut);font-size:11.5px;margin:8px 0 0}
+.rebuild{color:var(--mut);text-decoration:none;border-bottom:1px dotted rgba(170,180,199,.5)}
+.rebuild:hover{color:var(--gold)}
+.stalenote a{color:var(--gold);text-decoration:none;border-bottom:1px dotted rgba(227,196,127,.6)}
 .nowline{font-family:var(--sans);font-size:15px;line-height:1.65;color:var(--ink);
 margin:14px 0 2px;max-width:62ch}
 .nowline b{color:var(--text);font-weight:600}
@@ -602,8 +605,9 @@ LIVE_DATE_JS = """
   var now=new Date(),today=new Date(now.getFullYear(),now.getMonth(),now.getDate());
   var stale=Math.round((today-d0('__BUILD__'))/86400000);
   if(stale>0){var el=document.getElementById('stalenote');if(el){el.style.display='block';
-    el.textContent='This page was built '+('__BUILD__')+' ('+(stale===1?'yesterday':stale+' days ago')+
-    '). Event dates below are corrected to today; dial values refresh at the next scheduled build.';}}
+    el.innerHTML='This page was built __BUILD__ ('+(stale===1?'yesterday':stale+' days ago')+
+    '). Event dates below are corrected to today; dial values refresh at the next scheduled build'+
+    ' \\u2014 or <a href="__REPO__/actions/workflows/daily_check.yml">trigger one now \\u2197</a> (author sign-in).';}}
   document.querySelectorAll('[data-d]').forEach(function(e){
     var n=Math.round((d0(e.getAttribute('data-d'))-today)/86400000);
     var chip=e.querySelector('.chip');if(!chip)return;
@@ -950,7 +954,9 @@ weekday, wrong in public if wrong. New here? <a href="start.html">Start with the
 five-minute guide.</a></div>
 <div class="rule"></div>
 <div class="stamp {stamp_cls}">{stamp}</div>
-<div class="stampdate">checked {today.isoformat()}</div>
+<div class="stampdate">checked {today.isoformat()} · <a class="rebuild"
+href="{REPO}/actions/workflows/daily_check.yml"
+title="Author's switch — GitHub sign-in, press Run workflow; full fetch + rebuild in ~90s">rebuild now ↗</a></div>
 <div class="stalenote" id="stalenote"></div>
 {alert_html}
 <div class="nowline">{nowline}</div>
@@ -981,7 +987,7 @@ Research tooling only — not investment advice.</footer>"""
     stage_js = ("const b=document.getElementById('runassess'),sp=document.getElementById('stagepanel');"
                 "if(b)b.addEventListener('click',()=>{sp.classList.add('open');"
                 f"b.textContent='Assessed at last build — {today}';b.disabled=true;}});")
-    live_js = LIVE_DATE_JS.replace("__BUILD__", today.isoformat())
+    live_js = LIVE_DATE_JS.replace("__BUILD__", today.isoformat()).replace("__REPO__", REPO)
     return page("The Useful Life of a Bubble — live appendix", "now", body, stage_js + live_js)
 
 
