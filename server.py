@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import json
 import os
+import subprocess
 from datetime import date, datetime, timezone
 from pathlib import Path
 
@@ -358,6 +359,45 @@ def journal_append(entry: dict) -> None:
         f.write(json.dumps(entry) + "\n")
 
 
+PUBLISH_FILES = ("journal.jsonl", "tripwires.json")
+
+
+def _autopublish(msg: str) -> str:
+    """The entry is the only human act — everything downstream is machinery.
+
+    After a journal/state write, commit and push so the site rebuilds itself.
+    Stages ONLY the two record files, never anything else (private files in the
+    working tree stay private). Skipped inside CI (workflows own their commits)
+    or when BUBBLE_AUTOPUSH=0. Every failure degrades to a warning string — the
+    write is already safe on disk, and the next successful publish carries it."""
+    if os.environ.get("GITHUB_ACTIONS") or os.environ.get("BUBBLE_AUTOPUSH") == "0":
+        return "Commit journal.jsonl/tripwires.json to publish — the site renders committed state only."
+    def run(*args, timeout=45):
+        return subprocess.run(["git", "-C", str(ROOT), *args],
+                              capture_output=True, text=True, timeout=timeout)
+    try:
+        a = run("add", "--", *PUBLISH_FILES)
+        c = run("commit", "-m", msg)
+        if c.returncode != 0:
+            out = (c.stdout + c.stderr).lower()
+            if a.returncode == 0 and "nothing to commit" in out:
+                return "Nothing new to publish (already committed)."
+            return ("PUBLISH INCOMPLETE — the write is safe on disk, but the commit failed: "
+                    + (c.stderr or c.stdout).strip()[:300])
+        p = run("pull", "--rebase", "--autostash", "origin", "main", timeout=90)
+        if p.returncode == 0:
+            p = run("push", timeout=90)
+        if p.returncode != 0:
+            return ("PUBLISH INCOMPLETE — committed locally, but sync/push failed: "
+                    + (p.stderr or p.stdout).strip()[:300]
+                    + " | Your entry is safe; run 'git pull' then 'git push' whenever, "
+                      "or use the phone form — either carries it up.")
+        return "Published — committed and pushed. The site rebuilds itself in ~2 minutes."
+    except Exception as exc:  # timeout, git missing — never lose or block the write
+        return (f"PUBLISH INCOMPLETE — {exc}. Your entry is safe on disk; "
+                f"it publishes with the next successful push.")
+
+
 # ================================ MCP tools =================================
 
 
@@ -489,7 +529,8 @@ def set_tripwire_state(tripwire_id: str, state: str, note: str = "") -> str:
                 if note:
                     t["state_note"] = note
             TRIPWIRES_FILE.write_text(json.dumps(tw, indent=2) + "\n")
-            return f"{tripwire_id} -> {state}. Now commit tripwires.json with the reason — the site only sees committed state."
+            cm = f"state: {tripwire_id} -> {state} [via mcp]" + (f" — {note[:80]}" if note else "")
+            return f"{tripwire_id} -> {state}.\n" + _autopublish(cm)
     return f"No tripwire with id {tripwire_id!r}. Use list_tripwires() for ids."
 
 
@@ -528,7 +569,7 @@ def log_prediction(event: str, prediction: str, reasoning: str = "") -> str:
     """BEFORE an event: record your call, timestamped and append-only. This is
     the discipline that makes the track record honest — no editing after the fact."""
     journal_append({"kind": "prediction", "event": event, "prediction": prediction, "reasoning": reasoning})
-    return f"Logged prediction for: {event}"
+    return f"Logged prediction for: {event}\n" + _autopublish(f"journal(prediction): {event} [via mcp]")
 
 
 @mcp.tool()
@@ -536,7 +577,7 @@ def score_prediction(event: str, actual: str, verdict: str, lesson: str = "") ->
     """AFTER the event: what actually printed, your grade (right / wrong / mixed),
     and the lesson. Scoring your own misses is the entire point (Sec 10.7 rule 1)."""
     journal_append({"kind": "score", "event": event, "actual": actual, "verdict": verdict, "lesson": lesson})
-    return f"Scored: {event} -> {verdict}"
+    return f"Scored: {event} -> {verdict}\n" + _autopublish(f"journal(score): {event} -> {verdict} [via mcp]")
 
 
 @mcp.tool()

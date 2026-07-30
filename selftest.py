@@ -271,5 +271,39 @@ assert "rebuild now" in html_out and "actions/workflows/daily_check.yml" in html
     "the author's rebuild switch must be surfaced on the page"
 ok("live dates: chips recount from the reader's today; stale builds disclose themselves")
 
+# ---------- autopublish: the entry is the only human act ----------
+import os as _os
+_calls = []
+class _R:
+    def __init__(self, rc=0, out="", err=""):
+        self.returncode, self.stdout, self.stderr = rc, out, err
+def _fake_ok(cmd, **kw):
+    _calls.append(list(cmd)); return _R(0)
+_orig_run = server.subprocess.run
+_had_gha = _os.environ.pop("GITHUB_ACTIONS", None)
+server.subprocess.run = _fake_ok
+pub = server._autopublish("test: entry")
+server.subprocess.run = _orig_run
+assert "Published" in pub, "happy path must report committed+pushed"
+_staged = next(c for c in _calls if "add" in c)
+assert _staged[-3:] == ["--", "journal.jsonl", "tripwires.json"], \
+    "ONLY the two record files may ever be staged (private files stay private)"
+assert not any("-A" in c for c in _calls), "add -A is forbidden"
+assert any("--autostash" in c for c in _calls), "pre-push sync must autostash (29 Jul lesson)"
+_os.environ["GITHUB_ACTIONS"] = "true"
+gated = server._autopublish("x")
+del _os.environ["GITHUB_ACTIONS"]
+assert "committed state" in gated, "CI gate: workflows own their commits"
+def _fake_fail(cmd, **kw):
+    return _R(1, "", "simulated: could not resolve host github.com")
+server.subprocess.run = _fake_fail
+bad = server._autopublish("test: entry")
+server.subprocess.run = _orig_run
+assert "PUBLISH INCOMPLETE" in bad and "safe" in bad, \
+    "failure must degrade to a warning, never lose or block the write"
+if _had_gha is not None:
+    _os.environ["GITHUB_ACTIONS"] = _had_gha
+ok("autopublish: stages only the record, gated in CI, degrades safely offline")
+
 shutil.rmtree(tmp, ignore_errors=True)
 print(f"\nALL {PASS} REGRESSION TESTS PASS")
