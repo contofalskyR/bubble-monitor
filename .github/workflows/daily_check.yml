@@ -2,7 +2,9 @@ name: monitor
 
 on:
   schedule:
-    - cron: "30 21 * * 1-5"   # 21:30 UTC weekdays. NOTE: ICE BofA series may post
+    - cron: "30 21 * * 1-5"
+    - cron: "0 14 * * 1-5"    # morning refresh (~10:00 ET): pick up the prior close, re-date the calendar
+    - cron: "0 14 * * 1-5"    # morning refresh (~10:00 ET): pick up the prior close, re-date the calendar   # 21:30 UTC weekdays. NOTE: ICE BofA series may post
                               # to FRED the following morning — smoke_test.py prints
                               # the measured lag; obs_date in history.csv records truth.
   workflow_dispatch: {}        # manual run button (works from the GitHub mobile app)

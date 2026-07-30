@@ -380,6 +380,11 @@ background:var(--text);transform:translateX(-50%);box-shadow:0 0 10px rgba(236,2
 .gapnote{font-size:12px;color:var(--mut);margin-top:6px;line-height:1.55;word-break:break-word;
 font-family:var(--sans)}
 .gaperr{color:var(--gold);font-family:var(--mono)}
+.stalenote{display:none;font-family:var(--sans);font-size:12.5px;line-height:1.6;color:var(--gold);
+border:1px dashed rgba(227,196,127,.45);border-radius:8px;padding:8px 12px;margin:10px 0 0;
+background:rgba(227,196,127,.04);max-width:62ch}
+.ev.past{opacity:.55}
+.ev.past .chip{color:var(--mut)}
 .timeline{position:relative;padding-left:22px}
 .timeline::before{content:"";position:absolute;left:6px;top:6px;bottom:6px;width:1px;
 background:linear-gradient(rgba(227,196,127,.5),var(--line) 30%,rgba(255,255,255,0))}
@@ -587,6 +592,30 @@ document.addEventListener('keydown',function(e){
   if(e.key==='Enter'&&e.target.classList&&e.target.classList.contains('dfn')){tipPlace(e.target);e.target.classList.toggle('show');}});
 """
 
+# The page is a static snapshot; this runs at VIEW time so calendar chips are
+# always counted from the reader's today, past events dim instead of lying
+# ("+0d" the morning after), and a page older than today says so out loud.
+# '__BUILD__' is replaced with the build date at render.
+LIVE_DATE_JS = """
+(function(){
+  function d0(s){var p=s.split('-');return new Date(+p[0],+p[1]-1,+p[2]);}
+  var now=new Date(),today=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+  var stale=Math.round((today-d0('__BUILD__'))/86400000);
+  if(stale>0){var el=document.getElementById('stalenote');if(el){el.style.display='block';
+    el.textContent='This page was built '+('__BUILD__')+' ('+(stale===1?'yesterday':stale+' days ago')+
+    '). Event dates below are corrected to today; dial values refresh at the next scheduled build.';}}
+  document.querySelectorAll('[data-d]').forEach(function(e){
+    var n=Math.round((d0(e.getAttribute('data-d'))-today)/86400000);
+    var chip=e.querySelector('.chip');if(!chip)return;
+    if(n<0){e.classList.add('past');chip.textContent='\\u2212'+(-n)+'d';}
+    else chip.textContent=(e.hasAttribute('data-p')?'~':'+')+n+'d';});
+  var lb=document.querySelector('[data-lbd]');
+  if(lb){var n=Math.round((d0(lb.getAttribute('data-lbd'))-today)/86400000);
+    var v=lb.querySelector('.pv');
+    if(v)v.innerHTML=v.innerHTML.replace(/·\\s*\\d+d/,'· '+(n>=0?n+'d':'printed'));}
+})();
+"""
+
 NAV_ITEMS = [("start.html", "Start here", "start"), ("index.html", "Now", "now"),
              ("record.html", "Record", "record"), ("log.html", "Log", "log"),
              ("glossary.html", "Glossary", "glossary"), ("thesis.html", "Thesis", "thesis")]
@@ -740,11 +769,13 @@ def render(sample: bool) -> str:
                   f'{nearest["cur"] - nearest["r_lt"]:g} above refute</span>')
     else:
         p2 = '<span class="pv">—</span>'
+    lbd_attr = ""
     if next_lb:
         dd = (date.fromisoformat(next_lb["date"]) - today).days
         nm = next_lb["event"]
         nm = nm[:30] + "…" if len(nm) > 31 else nm
         p3 = f'<span class="pv gold">{esc(nm)} · {dd}d</span>'
+        lbd_attr = f' data-lbd="{esc(next_lb["date"])}"'
     else:
         p3 = '<span class="pv">—</span>'
     pulse = (f'<div class="pulse">'
@@ -752,7 +783,7 @@ def render(sample: bool) -> str:
              f'<div class="psub">did any dial cross a rail?</div></div>'
              f'<div class="pcell"><div class="pk">Nearest threshold</div>{p2}'
              f'<div class="psub">the dial closest to either rail</div></div>'
-             f'<div class="pcell"><div class="pk">Next load-bearing date</div>{p3}'
+             f'<div class="pcell"{lbd_attr}><div class="pk">Next load-bearing date</div>{p3}'
              f'<div class="psub">the date the thesis must show up on</div></div></div>')
 
     # how-to legend — the two-rail grammar, stated once, above the dials
@@ -809,7 +840,8 @@ def render(sample: bool) -> str:
         month_only = e.get("precision") == "month"
         chip = f"~{delta}d" if month_only else f"+{delta}d"
         when = f' <span style="opacity:.6">({d.strftime("%b %Y")}, month-verified)</span>' if month_only else ""
-        rows.append(f'<div class="ev{lb}"><span class="chip">{chip}</span>'
+        rows.append(f'<div class="ev{lb}" data-d="{esc(e["date"])}"'
+                    f'{" data-p=month" if month_only else ""}><span class="chip">{chip}</span>'
                     f'<div><div class="evname">{esc(e["event"])}{when}</div>'
                     f'<div class="evwatch">{esc(e["watch"])}</div></div></div>')
 
@@ -919,6 +951,7 @@ five-minute guide.</a></div>
 <div class="rule"></div>
 <div class="stamp {stamp_cls}">{stamp}</div>
 <div class="stampdate">checked {today.isoformat()}</div>
+<div class="stalenote" id="stalenote"></div>
 {alert_html}
 <div class="nowline">{nowline}</div>
 {pulse}{banner}
@@ -948,7 +981,8 @@ Research tooling only — not investment advice.</footer>"""
     stage_js = ("const b=document.getElementById('runassess'),sp=document.getElementById('stagepanel');"
                 "if(b)b.addEventListener('click',()=>{sp.classList.add('open');"
                 f"b.textContent='Assessed at last build — {today}';b.disabled=true;}});")
-    return page("The Useful Life of a Bubble — live appendix", "now", body, stage_js)
+    live_js = LIVE_DATE_JS.replace("__BUILD__", today.isoformat())
+    return page("The Useful Life of a Bubble — live appendix", "now", body, stage_js + live_js)
 
 
 # ---------------------------------------------------------------------- record

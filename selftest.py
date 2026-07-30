@@ -258,5 +258,16 @@ assert html_out.count("thesis-wrong side") >= 6, "every gauge needs a tipped ref
 assert html_out.count("thesis-right side") >= 6, "every gauge needs a tipped confirm label"
 ok("gauge: hard rail caps, refute/confirm/delta tips on all six dials, tips wrap")
 
+# ---------- static page corrects its own dates at view time ----------
+html_out = bd.render(True)
+assert 'data-d="' in html_out, "calendar rows must carry machine-readable dates"
+assert 'data-lbd="' in html_out, "load-bearing pulse must carry its date for live recount"
+assert 'id="stalenote"' in html_out and "corrected to today" in html_out, \
+    "a page viewed after its build date must say so"
+assert "classList.add('past')" in html_out, "past events must dim, not show +0d forever"
+import datetime as _dt
+assert _dt.date.today().isoformat() in html_out, "build date must be embedded for staleness math"
+ok("live dates: chips recount from the reader's today; stale builds disclose themselves")
+
 shutil.rmtree(tmp, ignore_errors=True)
 print(f"\nALL {PASS} REGRESSION TESTS PASS")
