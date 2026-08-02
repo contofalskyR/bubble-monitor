@@ -234,13 +234,11 @@ ROLE_ORDER = ["periphery", "chokepoint", "core", "supply"]
 REPORT_DATE = "2026-07-25"
 
 
-def fetch_prices(sym: str, n: int = 130) -> list[tuple[str, float]]:
-    """Daily closes from Stooq (no key, plain CSV), newest last. Raises on any
-    shape problem — a failed fetch renders as a GAP card, never a silent blank."""
+def _fetch_stooq(sym: str, n: int) -> list[tuple[str, float]]:
     import urllib.request
     url = f"https://stooq.com/q/d/l/?s={sym}&i=d"
     req = urllib.request.Request(url, headers={"User-Agent": "bubble-monitor build"})
-    with urllib.request.urlopen(req, timeout=8) as r:
+    with urllib.request.urlopen(req, timeout=6) as r:
         text = r.read().decode("utf-8", "replace")
     rows = []
     for ln in text.strip().splitlines()[1:]:
@@ -253,6 +251,43 @@ def fetch_prices(sym: str, n: int = 130) -> list[tuple[str, float]]:
     if len(rows) < 10:
         raise RuntimeError(f"stooq returned {len(rows)} usable rows for {sym}")
     return rows[-n:]
+
+
+def _fetch_yahoo(sym: str, n: int) -> list[tuple[str, float]]:
+    """Yahoo's chart endpoint — keyless JSON that datacenter IPs (like the CI
+    runner) can reach when stooq turns them away. Same contract: raise loudly."""
+    import json as _json
+    import time as _time
+    import urllib.request
+    tick = sym.split(".")[0].upper()
+    url = (f"https://query1.finance.yahoo.com/v8/finance/chart/{tick}"
+           f"?range=9mo&interval=1d")
+    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (bubble-monitor build)"})
+    with urllib.request.urlopen(req, timeout=8) as r:
+        data = _json.loads(r.read().decode("utf-8", "replace"))
+    result = (data.get("chart", {}).get("result") or [None])[0]
+    if not result:
+        raise RuntimeError(f"yahoo returned no chart result for {tick}")
+    stamps = result.get("timestamp") or []
+    closes = (result.get("indicators", {}).get("quote") or [{}])[0].get("close") or []
+    rows = [( _time.strftime("%Y-%m-%d", _time.gmtime(t)), round(float(c), 2))
+            for t, c in zip(stamps, closes) if c is not None]
+    if len(rows) < 10:
+        raise RuntimeError(f"yahoo returned {len(rows)} usable rows for {tick}")
+    return rows[-n:]
+
+
+def fetch_prices(sym: str, n: int = 130) -> tuple[list[tuple[str, float]], str]:
+    """Daily closes, newest last, plus the name of the source that served them —
+    provenance is part of the number. Tries stooq, then Yahoo; raises with BOTH
+    errors if neither serves, so a gap card shows the whole story (F12)."""
+    try:
+        return _fetch_stooq(sym, n), "stooq"
+    except Exception as e1:
+        try:
+            return _fetch_yahoo(sym, n), "yahoo"
+        except Exception as e2:
+            raise RuntimeError(f"stooq: {e1} · yahoo: {e2}")
 
 
 def sample_prices(sym: str, n: int = 130) -> list[tuple[str, float]]:
@@ -2008,7 +2043,11 @@ def gather_prices(sample: bool) -> dict:
     out = {}
     for c in CAST:
         try:
-            out[c["sym"]] = sample_prices(c["sym"]) if sample else fetch_prices(c["sym"])
+            if sample:
+                out[c["sym"]] = {"rows": sample_prices(c["sym"]), "src": "sample"}
+            else:
+                rows, src_name = fetch_prices(c["sym"])
+                out[c["sym"]] = {"rows": rows, "src": src_name}
         except Exception as exc:
             out[c["sym"]] = {"gap": str(exc)}
     return out
@@ -2017,14 +2056,14 @@ def gather_prices(sample: bool) -> dict:
 def basket_series(prices: dict, syms: list[str]) -> tuple[list[float], list[str]]:
     """Equal-weight basket, each member indexed to 100 at the report date;
     aligned on the dates every present member shares. Returns (values, present)."""
-    present = [s for s in syms if s in prices and not isinstance(prices[s], dict)]
+    present = [s for s in syms if "rows" in prices.get(s, {})]
     if not present:
         return [], []
-    keyed = {s: dict(prices[s]) for s in present}
+    keyed = {s: dict(prices[s]["rows"]) for s in present}
     dates = sorted(set.intersection(*[set(k) for k in keyed.values()]))[-130:]
     if len(dates) < 2:
         return [], present
-    bases = {s: price_baseline(prices[s]) for s in present}
+    bases = {s: price_baseline(prices[s]["rows"]) for s in present}
     vals = [round(sum(keyed[s][d] / bases[s] * 100 for s in present) / len(present), 2)
             for d in dates]
     return vals, present
@@ -2044,7 +2083,7 @@ def render_cast(sample: bool, ctx: dict | None = None) -> str:
         gap_pp = round(peri_vals[-1] - core_vals[-1], 1)
         chart = two_line_chart(core_vals, peri_vals, "Core basket", "Periphery basket", "sep")
         missing = ([c["tick"] for c in CAST if c["role"] in ("core", "periphery")
-                    and isinstance(prices[c["sym"]], dict)])
+                    and "gap" in prices[c["sym"]]])
         miss_note = (f'<div class="fseplab" style="margin-top:6px">Incomplete basket — could not '
                      f'fetch: {esc(", ".join(missing))}. A dark name is a finding.</div>'
                      if missing else "")
@@ -2075,7 +2114,7 @@ the report date's 100.</div>
         members = [c for c in CAST if c["role"] == role]
         cards = []
         for i, c in enumerate(members):
-            rows = prices[c["sym"]]
+            entry = prices[c["sym"]]
             tone = {"core": "#9db894", "periphery": "#e3c47f",
                     "chokepoint": "#ece7dc", "supply": "#aab4c7"}[role]
             wire_chips = ""
@@ -2094,23 +2133,24 @@ the report date's 100.</div>
             else:
                 wire_chips = ('<div class="ccwires"><span class="cchip">context only — '
                               'no wire of its own</span></div>')
-            if isinstance(rows, dict):
+            if "gap" in entry:
                 cards.append(
                     f'<div class="ccard"><div class="cchead"><span class="cctick">{c["tick"]}</span>'
                     f'<span class="ccname">{esc(c["name"])}</span>'
                     f'<span class="rolechip {role}">{ROLE_LABEL[role]}</span></div>'
-                    f'<div class="gapnote"><span class="gaperr">{esc(rows["gap"])}</span><br>'
+                    f'<div class="gapnote"><span class="gaperr">{esc(entry["gap"])}</span><br>'
                     f'No fetch, no number — the card returns when the source does.</div>'
                     f'<div class="ccline">{esc(c["line"])}</div>'
                     f'<details class="ccdoss"><summary>role in the thesis</summary>'
                     f'<div class="rtext">{esc(c["dossier"])}</div>{wire_chips}</details></div>')
                 continue
+            rows = entry["rows"]
             base = price_baseline(rows)
             last = rows[-1][1]
             pct = (last / base - 1) * 100
             vals = [v for _, v in rows]
             tag = ('sample preview — not market data' if sample
-                   else f'[V] stooq · {esc(rows[-1][0])} close')
+                   else f'[V] {esc(entry["src"])} · {esc(rows[-1][0])} close')
             cards.append(
                 f'<div class="ccard"><div class="cchead"><span class="cctick">{c["tick"]}</span>'
                 f'<span class="ccname">{esc(c["name"])}</span>'
@@ -2138,7 +2178,7 @@ own instruments; the verdicts live there.</div>
 {banner}
 {sep_html}
 {"".join(sections)}
-<footer>Prices are daily closes (Stooq), fetched at build time — <b>[V]</b> fetched live ·
+<footer>Prices are daily closes (stooq, or Yahoo when stooq turns the build's IP away — each card names its source), fetched at build time — <b>[V]</b> fetched live ·
 a failed fetch renders as a gap, never a stale number. Δ measures from the last close on or
 before {REPORT_DATE}. Baskets are equal-weight. Nothing here is a price target — the record
 is the entire trade. Research tooling only — not investment advice.</footer>"""
