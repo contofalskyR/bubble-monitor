@@ -31,6 +31,26 @@ INTRO = [
 
 GLOSSARY = {
     "Using this site": [
+        ("The argument (claims C1–C5)",
+         "The thesis decomposed into five testable claims on the Now page — borrowing short against "
+         "long assets, backlog conversion, separate repricing, vehicle-level surfacing, and the core "
+         "staying defensible (the refute watch, read first per Rule 10.7). Every one of the 29 "
+         "tripwires serves exactly one claim, so no number on the site is ever just data: it is "
+         "evidence for or against a specific sentence."),
+        ("Separation chart",
+         "On the cast page: the core basket (MSFT, GOOGL, AMZN, META) and the periphery basket "
+         "(ORCL, CRWV), each indexed to 100 on 25 Jul 2026, the day the report froze. The thesis "
+         "predicts the lines come apart — periphery down, core steady. Equity context only; the "
+         "credit dials carry the verdicts."),
+        ("The film",
+         "A labeled simulation: the thesis played forward on this site's own instruments, act by "
+         "act, so each stage is recognizable on sight if it arrives. Dial values are placed against "
+         "the real rails in tripwires.json; per Rule 10.7 the ending where the thesis is WRONG "
+         "plays before the ending where it is right. Every frame after Act 0 is invented."),
+        ("Status bar",
+         "The fixed line at the top of every page: current stage, tape state, evidence tally, "
+         "which way today's tape leans, and days to the next load-bearing date. One glance answers "
+         "'is the thesis being met?' from anywhere on the site."),
         ("Tripwire",
          "An observation committed to in advance, with two explicit thresholds: one that would confirm "
          "the thesis and one that would refute it. This monitor tracks 29 — six auto-checked against "

@@ -305,5 +305,83 @@ if _had_gha is not None:
     _os.environ["GITHUB_ACTIONS"] = _had_gha
 ok("autopublish: stages only the record, gated in CI, degrades safely offline")
 
+# ---------- app shell: one verdict, visible from every page ----------
+html_out = bd.render(True)
+ctx = bd.LAST_CTX
+assert ctx and ctx["mode"] == "full", "render() must publish the shared shell context"
+for name, pg_html in [("index", html_out), ("cast", bd.render_cast(True, ctx)),
+                      ("film", bd.render_film(ctx)), ("record", bd.render_record(ctx)),
+                      ("start", bd.render_start(ctx)), ("log", bd.render_log(ctx)),
+                      ("glossary", bd.render_glossary(ctx)), ("thesis", bd.render_thesis(ctx))]:
+    assert 'class="statusbar"' in pg_html, f"{name}: status bar missing"
+    assert 'class="rail"' in pg_html and 'class="tabbar"' in pg_html, f"{name}: rail/tabs missing"
+    for target in ("index.html", "cast.html", "film.html", "record.html",
+                   "log.html", "glossary.html", "start.html", "thesis.html"):
+        assert target in pg_html, f"{name}: shell must link {target}"
+assert "Stage</span>" in html_out and "Tape</span>" in html_out \
+       and "Evidence</span>" in html_out, "full status bar needs stage/tape/evidence segments"
+lite = bd.render_record()  # standalone render — offline-lite bar, no dial claims
+assert "Filings</span>" in lite and "Tape</span>" not in lite, \
+    "a page built without dials must not claim a tape verdict"
+ok("shell: status bar + rail + tabs on all 8 pages; lite bar never claims dials")
+
+# ---------- the argument: every wire serves exactly one claim ----------
+claimed = [w for c in bd.CLAIMS for w in c["wires"]]
+all_ids = {t["id"] for t in json.loads(Path("tripwires.json").read_text())["tripwires"]}
+assert len(claimed) == len(set(claimed)), "a wire may serve only one claim (dupes found)"
+missing = all_ids - set(claimed)
+extra = set(claimed) - all_ids
+assert not missing, f"orphan tripwires with no claim (clutter is banned): {missing}"
+assert not extra, f"claims cite unknown wires: {extra}"
+assert 'id="argument"' in html_out and html_out.count('class="clm"') == len(bd.CLAIMS), \
+    "the argument section must render one row per claim"
+assert "nothing yet — and that is a finding" in html_out, \
+    "an untested claim must say so instead of faking a verdict"
+assert "read C5" in html_out, "Rule 10.7 must route readers to the refute claim first"
+assert '#tw-hyper.meta_commitments' in html_out and 'id="tw-hyper.meta_commitments"' in html_out, \
+    "claim wires must deep-link to instruments that exist"
+ok(f"argument: all {len(all_ids)} wires mapped 1:1 onto {len(bd.CLAIMS)} claims; untested is honest")
+
+# ---------- cast: prices are provenanced, gaps are loud, samples are labeled ----------
+cast_s = bd.render_cast(True, ctx)
+assert cast_s.count("sample preview — not market data") >= 10, \
+    "every sample price card must be labeled as sample"
+assert 'class="tag v"' not in cast_s, "sample cast must never wear the fetched-live tag"
+assert "indexed to 100 on 2026-07-25" in cast_s, "separation chart must anchor to the report date"
+_orig_fetch = bd.fetch_prices
+bd.fetch_prices = lambda sym, n=130: (_ for _ in ()).throw(RuntimeError("simulated outage"))
+cast_gap = bd.render_cast(False, ctx)
+bd.fetch_prices = _orig_fetch
+assert "simulated outage" in cast_gap and "No price series could be fetched" in cast_gap, \
+    "a dead price source must render as a finding, never a blank or stale number"
+assert "No fetch, no number" in cast_gap, "gap cards must state the rule"
+ok("cast: sample labeled, report-date anchor, dead source degrades to loud gaps")
+
+# ---------- film: fiction labeled, rails real, wrong ending first ----------
+import re as _re
+film = bd.render_film(ctx)
+assert film.count("SIMULATION") + film.count("Simulation") >= 8, "film must be watermarked throughout"
+assert "[V]" not in film, "a simulation may never wear a live-data tag"
+assert film.index("The wrong ending") < film.index("Separation at the vehicle level"), \
+    "Rule 10.7: the refute ending must play before the confirm ending"
+code_to_id = {v: k for k, v in bd.DIAL_CODE.items()}
+rails = bd._film_rails()
+checked = 0
+for cls, code, val in _re.findall(
+        r'class="fdial (f[qwcr])"><div class="fk">([^<]+)</div><div class="fv">([\d.]+)</div>', film):
+    r_lt, c_gt = rails[code_to_id[code]]
+    v = float(val)
+    if cls == "fc":
+        assert v > c_gt, f"film shows {code}={v} as CONFIRM but the real rail is {c_gt}"
+    if cls == "fr":
+        assert v < r_lt, f"film shows {code}={v} as REFUTE but the real rail is {r_lt}"
+    checked += 1
+assert checked >= 36, f"expected 6 dials × ≥6 frames, parsed {checked}"
+rule_labels = {lbl for lbl, _o, _l in server.assess_stage(rows())["rules"]} | {"Refute overlay"}
+for blob in _re.findall(r'class="ffired">(.*?)</div>', film, _re.S):
+    for b in _re.findall(r"<b>([^<]+)</b>", blob):
+        assert b in rule_labels, f"film cites a stage rule that does not exist: {b!r}"
+ok(f"film: watermarked, refute-ending-first, {checked} dial frames verified against real rails")
+
 shutil.rmtree(tmp, ignore_errors=True)
 print(f"\nALL {PASS} REGRESSION TESTS PASS")
