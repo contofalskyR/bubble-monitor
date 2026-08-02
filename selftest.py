@@ -383,5 +383,27 @@ for blob in _re.findall(r'class="ffired">(.*?)</div>', film, _re.S):
         assert b in rule_labels, f"film cites a stage rule that does not exist: {b!r}"
 ok(f"film: watermarked, refute-ending-first, {checked} dial frames verified against real rails")
 
+# ---------- share layer: every page unfurls, assets exist, image is absolute ----------
+for name, pg_html in [("index", bd.render(True)), ("cast", bd.render_cast(True, ctx)),
+                      ("film", bd.render_film(ctx)), ("record", bd.render_record(ctx)),
+                      ("start", bd.render_start(ctx)), ("log", bd.render_log(ctx)),
+                      ("glossary", bd.render_glossary(ctx)), ("thesis", bd.render_thesis(ctx))]:
+    assert 'property="og:title"' in pg_html and 'property="og:description"' in pg_html, \
+        f"{name}: og tags missing — the link would unfurl bare"
+    assert 'name="twitter:card" content="summary_large_image"' in pg_html, \
+        f"{name}: twitter card type missing"
+    assert f'content="{bd.SITE_URL}card.png"' in pg_html, \
+        f"{name}: og:image must be the absolute card URL"
+    assert 'rel="canonical"' in pg_html and 'rel="icon" href="favicon.svg"' in pg_html, \
+        f"{name}: canonical/favicon links missing"
+    assert 'name="description"' in pg_html, f"{name}: meta description missing"
+for k, d in bd.PAGE_META.items():
+    assert 40 <= len(d) <= 200, f"PAGE_META[{k}] should be unfurl-sized (40–200 chars), got {len(d)}"
+for asset in ("card.png", "favicon.svg", "apple-touch-icon.png"):
+    p = Path("docs") / asset
+    assert p.exists() and p.stat().st_size > 0, \
+        f"docs/{asset} missing — commit the share assets alongside the code"
+ok("share layer: og/twitter/canonical/favicon on all 8 pages; assets present")
+
 shutil.rmtree(tmp, ignore_errors=True)
 print(f"\nALL {PASS} REGRESSION TESTS PASS")

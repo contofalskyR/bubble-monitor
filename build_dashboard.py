@@ -1161,6 +1161,55 @@ SHELL_JS = """
 """
 
 
+# ------------------------------------------------------- share layer (unfurls)
+SITE_URL = "https://contofalskyr.github.io/bubble-monitor/"
+
+# per-page description for search results and link unfurls — the one sentence a
+# stranger sees before deciding whether to click. Keys match nav 'active' keys.
+PAGE_META = {
+    "now": "One credit thesis, monitored in public: six FRED credit dials, 23 filing "
+           "tripwires, a dated calendar to 2028 — wrong in public if wrong.",
+    "cast": "The two trades priced as one — core vs periphery, every company indexed "
+            "to the day the report froze, with the separation chart on top.",
+    "film": "The thesis played forward on its own instruments, act by act — including "
+            "the ending where it is wrong, which plays first.",
+    "record": "Every prediction committed to public git history before the print, "
+              "scored right or wrong after. Misses stay up.",
+    "start": "What this site is, how to read it, and what it will never tell you — "
+             "a five-minute guide for someone new to credit.",
+    "log": "How entries reach the record: a phone form, MCP tools, or a raw JSON "
+           "line — all three end as timestamped git commits.",
+    "glossary": "Every term on the site, defined by use and anchored to the report's "
+                "own figures.",
+    "thesis": "The claim in the report's own words: the AI buildout is two trades, "
+              "and the market is pricing them as one.",
+}
+
+
+def share_head(title: str, active: str) -> str:
+    href = next((h for h, _l, k in NAV_ITEMS if k == active), "index.html")
+    url = SITE_URL if href == "index.html" else SITE_URL + href
+    desc = PAGE_META.get(active, PAGE_META["now"])
+    return f"""<meta name="description" content="{esc(desc)}">
+<link rel="canonical" href="{url}">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="theme-color" content="#0a0d14">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="The Useful Life of a Bubble">
+<meta property="og:title" content="{esc(title)}">
+<meta property="og:description" content="{esc(desc)}">
+<meta property="og:url" content="{url}">
+<meta property="og:image" content="{SITE_URL}card.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="The Useful Life of a Bubble — a public monitor for one credit thesis, with the separation chart: the core holding while the periphery falls away.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{esc(title)}">
+<meta name="twitter:description" content="{esc(desc)}">
+<meta name="twitter:image" content="{SITE_URL}card.png">"""
+
+
 def page(title: str, active: str, body: str, extra_js: str = "",
          ctx: dict | None = None) -> str:
     return f"""<!doctype html>
@@ -1169,6 +1218,7 @@ def page(title: str, active: str, body: str, extra_js: str = "",
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="dark">
 <title>{esc(title)}</title>
+{share_head(title, active)}
 {FONTS}
 <style>{CSS}</style></head>
 <body>
