@@ -70,3 +70,4 @@ run_date,obs_date,id,value,status
 2026-08-12,2026-08-11,credit.dispersion,7.51,quiet
 2026-08-12,2026-08-11,credit.bbb_oas,0.98,quiet
 2026-08-12,2026-08-11,credit.ig_oas,0.79,quiet
+2026-08-12,2026-08-11,credit.ust10y,4.7,quiet
