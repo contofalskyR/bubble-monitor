@@ -85,3 +85,7 @@ run_date,obs_date,id,value,status
 2026-08-14,2026-08-13,credit.ust10y,4.63,quiet
 2026-08-17,2026-08-14,credit.hy_oas,2.67,quiet
 2026-08-17,2026-08-14,credit.ig_oas,0.8,quiet
+2026-08-17,2026-08-14,credit.ccc_oas,10.12,quiet
+2026-08-17,2026-08-14,credit.dispersion,7.45,quiet
+2026-08-17,2026-08-14,credit.bbb_oas,0.98,quiet
+2026-08-17,2026-08-14,credit.ust10y,4.68,quiet
